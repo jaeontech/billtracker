@@ -72,10 +72,10 @@ export default function PayBlock({ block, bills, blocks, onCycleStatus, onMove, 
     <section ref={setNodeRef} className="mb-14">
       {/* Header */}
       <div className={`px-6 py-3 -mx-3.5 transition-colors ${isOver ? 'bg-accent/20' : 'bg-surface-2'}`}>
-        <div className="flex">
-          {/* chevron gutter — fixed 20px so content aligns with the bills below */}
+        <div className="flex items-start">
+          {/* chevron gutter — fixed 20px wide, h-7 box matches the title line so it top-aligns */}
           <button onClick={toggleCollapsed} aria-label="Toggle bills"
-            className={`w-5 text-center text-faint text-[10px] shrink-0 pt-1 transition-transform duration-150 ${collapsed ? '' : 'rotate-90'}`}>
+            className={`w-5 h-7 flex items-center justify-center text-faint text-[10px] shrink-0 transition-transform duration-150 ${collapsed ? '' : 'rotate-90'}`}>
             ▶
           </button>
           {/* content column — name, money, status all align here */}
