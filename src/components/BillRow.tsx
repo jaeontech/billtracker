@@ -61,10 +61,14 @@ export default function BillRow({ bill, block, blocks, onCycleStatus, onMove, on
   const level = lateLevel(late)
   const deferred = !!bill.deferred_from_block_id
 
-  // Due / lateness label
-  let dueLabel = bill.due_date ? new Date(bill.due_date + 'T00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'
-  if (deferred) dueLabel = `↩ ${dueLabel}`
-  else if (late && late > 0) dueLabel = `${dueLabel} · ${late}d`
+  // Due date: compact numeric M/D (e.g. "6/20"). Lateness is shown by color only
+  // (LATE_STYLE — amber/orange/red); the deferred ↩ prefix is tight.
+  let dueLabel = '—'
+  if (bill.due_date) {
+    const d = new Date(bill.due_date + 'T00:00')
+    dueLabel = `${d.getMonth() + 1}/${d.getDate()}`
+  }
+  if (deferred) dueLabel = `↩${dueLabel}`
 
   function onAction(e: React.ChangeEvent<HTMLSelectElement>) {
     const v = e.target.value
@@ -117,7 +121,7 @@ export default function BillRow({ bill, block, blocks, onCycleStatus, onMove, on
       ) : (
         <button
           onClick={() => setEditingDue(true)}
-          className={`text-[11px] font-medium shrink-0 whitespace-nowrap min-w-[64px] text-right ${deferred ? 'text-gold' : LATE_STYLE[level]}`}
+          className={`text-[11px] font-medium shrink-0 whitespace-nowrap min-w-[44px] text-right ${deferred ? 'text-gold' : LATE_STYLE[level]}`}
         >
           {dueLabel}
         </button>
