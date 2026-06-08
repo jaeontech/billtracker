@@ -107,6 +107,8 @@ export default function App() {
   const onAddBill = (blockId: string, b: { name: string; amount: number; method: 'auto' | 'manual'; due_date: string | null }) =>
     run(db.addBill({ pay_block_id: blockId, ...b }))
   const onEditAmount = (bill: Bill, amount: number) => run(db.setBillAmount(bill, amount))
+  const onEditName = (bill: Bill, name: string) => run(db.setBillName(bill, name))
+  const onEditDue = (bill: Bill, due: string | null) => run(db.setBillDue(bill, due))
 
   // Drag handlers reuse onMove → the 30-day guardrail applies to drag too.
   const onDragStart = (e: DragStartEvent) => setActiveBill((e.active.data.current?.bill as Bill) ?? null)
@@ -167,13 +169,13 @@ export default function App() {
             )}
             {showPast && pastBlocks.map((block) => (
               <PayBlock key={block.id} block={block} bills={billsByBlock[block.id] ?? []} blocks={blocks} dim
-                onCycleStatus={onCycleStatus} onMove={onMove} onSkip={onSkip} onDelete={onDelete} onEditAmount={onEditAmount} onAddBill={onAddBill} />
+                onCycleStatus={onCycleStatus} onMove={onMove} onSkip={onSkip} onDelete={onDelete} onEditAmount={onEditAmount} onEditName={onEditName} onEditDue={onEditDue} onAddBill={onAddBill} />
             ))}
 
             {visibleBlocks.map((block, i) => (
               <PayBlock key={block.id} block={block} bills={billsByBlock[block.id] ?? []} blocks={blocks}
                 current={i === 0} dim={i > 0}
-                onCycleStatus={onCycleStatus} onMove={onMove} onSkip={onSkip} onDelete={onDelete} onEditAmount={onEditAmount} onAddBill={onAddBill} />
+                onCycleStatus={onCycleStatus} onMove={onMove} onSkip={onSkip} onDelete={onDelete} onEditAmount={onEditAmount} onEditName={onEditName} onEditDue={onEditDue} onAddBill={onAddBill} />
             ))}
             <DragOverlay>
               {activeBill ? (

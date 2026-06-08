@@ -149,6 +149,24 @@ export async function setBillAmount(bill: Bill, amount: number): Promise<void> {
   await logActivity('bill', bill.id, 'updated', `Changed ${bill.name} to $${amount}`)
 }
 
+export async function setBillName(bill: Bill, name: string): Promise<void> {
+  const { error } = await supabase
+    .from('bills')
+    .update({ name, updated_at: new Date().toISOString() })
+    .eq('id', bill.id)
+  if (error) throw error
+  await logActivity('bill', bill.id, 'updated', `Renamed "${bill.name}" to "${name}"`)
+}
+
+export async function setBillDue(bill: Bill, due_date: string | null): Promise<void> {
+  const { error } = await supabase
+    .from('bills')
+    .update({ due_date, updated_at: new Date().toISOString() })
+    .eq('id', bill.id)
+  if (error) throw error
+  await logActivity('bill', bill.id, 'updated', `Set ${bill.name} due date to ${due_date ?? '—'}`)
+}
+
 export async function setBillNa(bill: Bill, na: boolean): Promise<void> {
   const { error } = await supabase.from('bills').update({ na }).eq('id', bill.id)
   if (error) throw error

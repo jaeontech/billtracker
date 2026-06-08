@@ -15,10 +15,12 @@ interface Props {
   onSkip: (bill: Bill, na: boolean) => void
   onDelete: (bill: Bill) => void
   onEditAmount: (bill: Bill, amount: number) => void
+  onEditName: (bill: Bill, name: string) => void
+  onEditDue: (bill: Bill, due: string | null) => void
   onAddBill: (blockId: string, b: { name: string; amount: number; method: 'auto' | 'manual'; due_date: string | null }) => void
 }
 
-export default function PayBlock({ block, bills, blocks, current, dim, onCycleStatus, onMove, onSkip, onDelete, onEditAmount, onAddBill }: Props) {
+export default function PayBlock({ block, bills, blocks, current, dim, onCycleStatus, onMove, onSkip, onDelete, onEditAmount, onEditName, onEditDue, onAddBill }: Props) {
   const m = blockMoney(block, bills)
   const { setNodeRef, isOver } = useDroppable({ id: block.id })
   const [adding, setAdding] = useState(false)
@@ -91,6 +93,8 @@ export default function PayBlock({ block, bills, blocks, current, dim, onCycleSt
             onSkip={onSkip}
             onDelete={onDelete}
             onEditAmount={onEditAmount}
+            onEditName={onEditName}
+            onEditDue={onEditDue}
           />
         ))}
       </div>

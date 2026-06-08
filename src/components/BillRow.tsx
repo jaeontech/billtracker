@@ -31,21 +31,31 @@ interface Props {
   onSkip: (bill: Bill, na: boolean) => void
   onDelete: (bill: Bill) => void
   onEditAmount: (bill: Bill, amount: number) => void
+  onEditName: (bill: Bill, name: string) => void
+  onEditDue: (bill: Bill, due: string | null) => void
 }
 
-export default function BillRow({ bill, block, blocks, onCycleStatus, onMove, onSkip, onDelete, onEditAmount }: Props) {
+export default function BillRow({ bill, block, blocks, onCycleStatus, onMove, onSkip, onDelete, onEditAmount, onEditName, onEditDue }: Props) {
   // Drag handle only — the rest of the row stays tappable/scrollable.
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, isDragging } = useDraggable({
     id: bill.id,
     data: { bill },
   })
-  // Inline-editable amount (template value is just the default seed).
+  // Inline-editable fields (template values are just the default seeds).
   const [editingAmt, setEditingAmt] = useState(false)
   const [amt, setAmt] = useState(String(bill.amount))
+  const [editingName, setEditingName] = useState(false)
+  const [nameVal, setNameVal] = useState(bill.name)
+  const [editingDue, setEditingDue] = useState(false)
   function commitAmt() {
     setEditingAmt(false)
     const n = Number(amt)
     if (!Number.isNaN(n) && n !== bill.amount) onEditAmount(bill, n)
+  }
+  function commitName() {
+    setEditingName(false)
+    const v = nameVal.trim()
+    if (v && v !== bill.name) onEditName(bill, v)
   }
   const late = daysLate(bill.due_date, block.pay_date)
   const level = lateLevel(late)
@@ -75,10 +85,43 @@ export default function BillRow({ bill, block, blocks, onCycleStatus, onMove, on
       >
         ⠿
       </button>
-      <span className="text-sm font-semibold truncate flex-1 min-w-0">{bill.name}</span>
-      <span className={`text-[11px] font-medium shrink-0 whitespace-nowrap min-w-[64px] text-right ${deferred ? 'text-gold' : LATE_STYLE[level]}`}>
-        {dueLabel}
-      </span>
+      {editingName ? (
+        <input
+          autoFocus
+          value={nameVal}
+          onChange={(e) => setNameVal(e.target.value)}
+          onBlur={commitName}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+            if (e.key === 'Escape') { setNameVal(bill.name); setEditingName(false) }
+          }}
+          className="bg-surface rounded px-1 text-sm font-semibold flex-1 min-w-0 outline-none ring-1 ring-accent/50"
+        />
+      ) : (
+        <button
+          onClick={() => { setNameVal(bill.name); setEditingName(true) }}
+          className="text-sm font-semibold truncate flex-1 min-w-0 text-left"
+        >
+          {bill.name}
+        </button>
+      )}
+      {editingDue ? (
+        <input
+          type="date"
+          autoFocus
+          value={bill.due_date ?? ''}
+          onChange={(e) => { onEditDue(bill, e.target.value || null); setEditingDue(false) }}
+          onBlur={() => setEditingDue(false)}
+          className="bg-surface rounded px-1 text-[11px] outline-none ring-1 ring-accent/50 shrink-0 text-muted"
+        />
+      ) : (
+        <button
+          onClick={() => setEditingDue(true)}
+          className={`text-[11px] font-medium shrink-0 whitespace-nowrap min-w-[64px] text-right ${deferred ? 'text-gold' : LATE_STYLE[level]}`}
+        >
+          {dueLabel}
+        </button>
+      )}
       <span className={`text-[9px] tracking-wide font-semibold uppercase shrink-0 min-w-[40px] text-right ${bill.method === 'auto' ? 'text-blue' : 'text-faint'}`}>
         {bill.method}
       </span>
