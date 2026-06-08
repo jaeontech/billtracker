@@ -208,3 +208,35 @@ export async function deleteBill(bill: Bill): Promise<void> {
   if (error) throw error
   await logActivity('bill', bill.id, 'deleted', `Deleted bill "${bill.name}"`)
 }
+
+// ─── Undo helpers (restore a captured snapshot) ──────────────────────────────
+// Restore all mutable fields of a bill to a prior snapshot (undo an edit/move).
+export async function restoreBill(b: Bill): Promise<void> {
+  const { error } = await supabase.from('bills').update({
+    pay_block_id: b.pay_block_id, name: b.name, amount: b.amount, method: b.method,
+    due_date: b.due_date, status: b.status, na: b.na,
+    deferred_from_block_id: b.deferred_from_block_id,
+    date_sent: b.date_sent, date_paid: b.date_paid, notes: b.notes,
+    updated_at: new Date().toISOString(),
+  }).eq('id', b.id)
+  if (error) throw error
+}
+
+// Re-insert a deleted bill with its original id (undo a delete).
+export async function reinsertBill(b: Bill): Promise<void> {
+  const { error } = await supabase.from('bills').insert({
+    id: b.id, pay_block_id: b.pay_block_id, template_id: b.template_id, name: b.name,
+    amount: b.amount, method: b.method, due_date: b.due_date, status: b.status, na: b.na,
+    deferred_from_block_id: b.deferred_from_block_id,
+    date_sent: b.date_sent, date_paid: b.date_paid, notes: b.notes,
+  })
+  if (error) throw error
+}
+
+// Restore a pay block's mutable fields (undo complete/hide/income).
+export async function restoreBlock(b: PayBlock): Promise<void> {
+  const { error } = await supabase.from('pay_blocks').update({
+    completed: b.completed, hidden: b.hidden, income: b.income, name: b.name,
+  }).eq('id', b.id)
+  if (error) throw error
+}

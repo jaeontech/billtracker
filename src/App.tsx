@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   DndContext, DragOverlay, PointerSensor, closestCenter, useSensor, useSensors,
   type DragEndEvent, type DragStartEvent,
@@ -98,15 +98,54 @@ export default function App() {
   const visibleBlocks = boardBlocks.slice(currentIdx)
 
   const run = (p: Promise<unknown>) => p.then(loadAll).catch((e) => setError(String(e)))
-  const onCycleStatus = (bill: Bill, next: Bill['status']) => run(db.setBillStatus(bill, next))
-  const onSkip = (bill: Bill, na: boolean) => run(db.setBillNa(bill, na))
-  const onDelete = (bill: Bill) => run(db.deleteBill(bill))
+
+  // ─── Session undo stack (in-memory; clears on refresh) ─────────────────────
+  const undoStack = useRef<Array<() => Promise<void>>>([])
+  const [undoCount, setUndoCount] = useState(0)
+  const pushUndo = (fn: () => Promise<void>) => { undoStack.current.push(fn); setUndoCount(undoStack.current.length) }
+  // Run an edit, then record how to reverse it (restore the pre-edit snapshot).
+  const editBill = (bill: Bill, op: Promise<unknown>) => {
+    const snap = { ...bill }
+    op.then(() => { pushUndo(() => db.restoreBill(snap)); return loadAll() }).catch((e) => setError(String(e)))
+  }
+  const editBlock = (block: PayBlockT, op: Promise<unknown>) => {
+    const snap = { ...block }
+    op.then(() => { pushUndo(() => db.restoreBlock(snap)); return loadAll() }).catch((e) => setError(String(e)))
+  }
+  const undoLast = () => {
+    const fn = undoStack.current.pop()
+    setUndoCount(undoStack.current.length)
+    if (fn) Promise.resolve(fn()).then(loadAll).catch((e) => setError(String(e)))
+  }
+  const revertAll = () => {
+    const fns = undoStack.current.splice(0).reverse() // newest first → ends at original state
+    setUndoCount(0)
+    ;(async () => {
+      for (const fn of fns) { try { await fn() } catch (e) { setError(String(e)) } }
+      await loadAll()
+    })()
+  }
+
+  const onCycleStatus = (bill: Bill, next: Bill['status']) => editBill(bill, db.setBillStatus(bill, next))
+  const onSkip = (bill: Bill, na: boolean) => editBill(bill, db.setBillNa(bill, na))
+  const onEditAmount = (bill: Bill, amount: number) => editBill(bill, db.setBillAmount(bill, amount))
+  const onEditName = (bill: Bill, name: string) => editBill(bill, db.setBillName(bill, name))
+  const onEditDue = (bill: Bill, due: string | null) => editBill(bill, db.setBillDue(bill, due))
+  const onDelete = (bill: Bill) => {
+    const snap = { ...bill }
+    db.deleteBill(bill).then(() => { pushUndo(() => db.reinsertBill(snap)); return loadAll() }).catch((e) => setError(String(e)))
+  }
+  const onAddBill = (blockId: string, b: { name: string; amount: number; method: 'auto' | 'manual'; due_date: string | null }) => {
+    db.addBill({ pay_block_id: blockId, ...b })
+      .then((created) => { pushUndo(() => db.deleteBill(created)); return loadAll() })
+      .catch((e) => setError(String(e)))
+  }
   const performMove = (bill: Bill, to: PayBlockT) => {
     const home = findHomeBlock(bill.due_date, blocks)
     // Clear the deferred tag when it lands back in its home block; otherwise mark
     // it deferred from home (the ↩ means "not where it naturally belongs").
     const deferredFrom = home && home.id === to.id ? null : home?.id ?? bill.pay_block_id
-    run(db.moveBill(bill, to, deferredFrom))
+    editBill(bill, db.moveBill(bill, to, deferredFrom))
   }
   const onMove = (bill: Bill, toBlockId: string) => {
     const to = blocks.find((b) => b.id === toBlockId)
@@ -122,14 +161,9 @@ export default function App() {
     if (guard) performMove(guard.bill, guard.to)
     setGuard(null)
   }
-  const onAddBill = (blockId: string, b: { name: string; amount: number; method: 'auto' | 'manual'; due_date: string | null }) =>
-    run(db.addBill({ pay_block_id: blockId, ...b }))
-  const onEditAmount = (bill: Bill, amount: number) => run(db.setBillAmount(bill, amount))
-  const onEditName = (bill: Bill, name: string) => run(db.setBillName(bill, name))
-  const onEditDue = (bill: Bill, due: string | null) => run(db.setBillDue(bill, due))
-  const onToggleComplete = (block: PayBlockT, completed: boolean) => run(db.setBlockCompleted(block, completed))
-  const onHide = (block: PayBlockT) => run(db.setBlockHidden(block, true))
-  const onUnhide = (block: PayBlockT) => run(db.setBlockHidden(block, false))
+  const onToggleComplete = (block: PayBlockT, completed: boolean) => editBlock(block, db.setBlockCompleted(block, completed))
+  const onHide = (block: PayBlockT) => editBlock(block, db.setBlockHidden(block, true))
+  const onUnhide = (block: PayBlockT) => editBlock(block, db.setBlockHidden(block, false))
 
   // Drag handlers reuse onMove → the 30-day guardrail applies to drag too.
   const onDragStart = (e: DragStartEvent) => { if (!locked) setActiveBill((e.active.data.current?.bill as Bill) ?? null) }
@@ -165,6 +199,16 @@ export default function App() {
             </button>
           </div>
         </header>
+
+        {!locked && undoCount > 0 && (
+          <div className="flex items-center justify-between bg-surface rounded-xl px-3.5 py-2 mb-3">
+            <span className="text-muted text-[12px]">{undoCount} change{undoCount > 1 ? 's' : ''} this session</span>
+            <div className="flex gap-4 text-[12.5px] font-semibold">
+              <button onClick={undoLast} className="text-accent">↶ Undo</button>
+              <button onClick={revertAll} className="text-red">Revert all</button>
+            </div>
+          </div>
+        )}
 
         {loading && <div className="text-muted text-sm py-8">Loading…</div>}
         {error && <div className="text-red text-sm py-4 bg-red/10 rounded-xl px-4 my-2">{error}</div>}
