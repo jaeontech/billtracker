@@ -49,13 +49,14 @@ export default function BillRow({ bill, block, blocks, onCycleStatus, onMove, on
   }
 
   return (
-    <div className={`flex items-center gap-2 h-11 ${bill.na ? 'opacity-50' : ''}`}>
-      <span className="text-sm font-semibold truncate max-w-[120px] shrink-0">{bill.name}</span>
-      <span className="text-[9px] tracking-wide font-semibold text-faint uppercase shrink-0">{bill.method}</span>
-      <span className={`text-[11px] font-medium shrink-0 whitespace-nowrap ${deferred ? 'text-gold' : LATE_STYLE[level]}`}>
+    <div className={`flex items-center gap-2 h-8 ${bill.na ? 'opacity-50' : ''}`}>
+      <span className="text-sm font-semibold truncate flex-1 min-w-0">{bill.name}</span>
+      <span className={`text-[11px] font-medium shrink-0 whitespace-nowrap min-w-[64px] text-right ${deferred ? 'text-gold' : LATE_STYLE[level]}`}>
         {dueLabel}
       </span>
-      <span className="flex-1 min-w-1.5" />
+      <span className={`text-[9px] tracking-wide font-semibold uppercase shrink-0 min-w-[40px] text-right ${bill.method === 'auto' ? 'text-blue' : 'text-faint'}`}>
+        {bill.method}
+      </span>
       <span className="text-sm font-bold shrink-0 min-w-[54px] text-right tracking-tight">{money(bill.amount)}</span>
       {bill.na ? (
         <span className="text-[10.5px] font-bold tracking-wide text-faint uppercase min-w-[58px] text-right">NA</span>
