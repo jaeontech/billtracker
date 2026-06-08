@@ -1,3 +1,4 @@
+import { useDraggable } from '@dnd-kit/core'
 import type { Bill, PayBlock } from '../types'
 import { daysLate, lateLevel, money } from '../lib/money'
 
@@ -31,6 +32,11 @@ interface Props {
 }
 
 export default function BillRow({ bill, block, blocks, onCycleStatus, onMove, onSkip, onDelete }: Props) {
+  // Drag handle only — the rest of the row stays tappable/scrollable.
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, isDragging } = useDraggable({
+    id: bill.id,
+    data: { bill },
+  })
   const late = daysLate(bill.due_date, block.pay_date)
   const level = lateLevel(late)
   const deferred = !!bill.deferred_from_block_id
@@ -49,7 +55,16 @@ export default function BillRow({ bill, block, blocks, onCycleStatus, onMove, on
   }
 
   return (
-    <div className={`flex items-center gap-2 h-8 ${bill.na ? 'opacity-50' : ''}`}>
+    <div ref={setNodeRef} className={`flex items-center gap-2 h-8 ${bill.na ? 'opacity-50' : ''} ${isDragging ? 'opacity-30' : ''}`}>
+      <button
+        ref={setActivatorNodeRef}
+        {...listeners}
+        {...attributes}
+        className="touch-none cursor-grab active:cursor-grabbing text-faint text-[13px] leading-none px-0.5 -ml-1 shrink-0 select-none"
+        title="Drag to move"
+      >
+        ⠿
+      </button>
       <span className="text-sm font-semibold truncate flex-1 min-w-0">{bill.name}</span>
       <span className={`text-[11px] font-medium shrink-0 whitespace-nowrap min-w-[64px] text-right ${deferred ? 'text-gold' : LATE_STYLE[level]}`}>
         {dueLabel}

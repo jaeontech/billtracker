@@ -1,9 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  DndContext, DragOverlay, PointerSensor, closestCenter, useSensor, useSensors,
+  type DragEndEvent, type DragStartEvent,
+} from '@dnd-kit/core'
 import type { Bill, PayBlock as PayBlockT, Settings, Template } from './types'
 import * as db from './lib/db'
 import { supabase } from './lib/supabase'
 import { ensureSchedule } from './lib/schedule'
-import { daysLate } from './lib/money'
+import { daysLate, money } from './lib/money'
 import PayBlock from './components/PayBlock'
 import TemplatesView from './components/TemplatesView'
 
@@ -21,6 +25,9 @@ export default function App() {
   const [view, setView] = useState<'board' | 'templates'>('board')
   // 30-day guardrail: holds a pending move that would push a bill 30+ days late.
   const [guard, setGuard] = useState<{ bill: Bill; from: PayBlockT; to: PayBlockT; days: number } | null>(null)
+  // Drag-and-drop: the bill currently being dragged (for the floating overlay).
+  const [activeBill, setActiveBill] = useState<Bill | null>(null)
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
 
   const loadAll = useCallback(async () => {
     try {
@@ -92,6 +99,15 @@ export default function App() {
   const onAddBill = (blockId: string, b: { name: string; amount: number; method: 'auto' | 'manual'; due_date: string | null }) =>
     run(db.addBill({ pay_block_id: blockId, ...b }))
 
+  // Drag handlers reuse onMove → the 30-day guardrail applies to drag too.
+  const onDragStart = (e: DragStartEvent) => setActiveBill((e.active.data.current?.bill as Bill) ?? null)
+  const onDragEnd = (e: DragEndEvent) => {
+    setActiveBill(null)
+    const bill = e.active.data.current?.bill as Bill | undefined
+    const overId = e.over?.id as string | undefined
+    if (bill && overId && overId !== bill.pay_block_id) onMove(bill, overId)
+  }
+
   return (
     <div className="min-h-dvh flex justify-center">
       <div className="w-full max-w-[460px] px-3.5 pb-28">
@@ -125,7 +141,7 @@ export default function App() {
         )}
 
         {!loading && view === 'board' && (
-          <>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={onDragStart} onDragEnd={onDragEnd}>
             {addingBlock && <AddBlockForm onDone={() => { setAddingBlock(false); loadAll() }} defaultDate={todayISO()} />}
 
             {blocks.length === 0 && !addingBlock && (
@@ -150,7 +166,15 @@ export default function App() {
                 current={i === 0} dim={i > 0}
                 onCycleStatus={onCycleStatus} onMove={onMove} onSkip={onSkip} onDelete={onDelete} onAddBill={onAddBill} />
             ))}
-          </>
+            <DragOverlay>
+              {activeBill ? (
+                <div className="bg-surface ring-1 ring-accent/60 rounded-lg px-3 py-2 flex items-center gap-3 shadow-2xl text-sm font-semibold">
+                  <span className="truncate max-w-[180px]">{activeBill.name}</span>
+                  <span className="ml-auto font-bold tabular-nums">{money(activeBill.amount)}</span>
+                </div>
+              ) : null}
+            </DragOverlay>
+          </DndContext>
         )}
       </div>
 

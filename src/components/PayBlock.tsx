@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useDroppable } from '@dnd-kit/core'
 import type { Bill, PayBlock as PayBlockT } from '../types'
 import { blockMoney, money, moneySigned } from '../lib/money'
 import BillRow from './BillRow'
@@ -18,6 +19,7 @@ interface Props {
 
 export default function PayBlock({ block, bills, blocks, current, dim, onCycleStatus, onMove, onSkip, onDelete, onAddBill }: Props) {
   const m = blockMoney(block, bills)
+  const { setNodeRef, isOver } = useDroppable({ id: block.id })
   const [adding, setAdding] = useState(false)
   const [name, setName] = useState('')
   const [amount, setAmount] = useState('')
@@ -38,9 +40,9 @@ export default function PayBlock({ block, bills, blocks, current, dim, onCycleSt
   }
 
   return (
-    <section className={`mb-14 ${dim ? 'opacity-60' : ''}`}>
+    <section ref={setNodeRef} className={`mb-14 ${dim ? 'opacity-60' : ''}`}>
       {/* Header */}
-      <div className="bg-surface-2 px-6 py-4 -mx-3.5">
+      <div className={`px-6 py-4 -mx-3.5 transition-colors ${isOver ? 'bg-accent/20' : 'bg-surface-2'}`}>
         <div className="flex justify-between items-baseline">
           <div>
             <div className="font-display text-xl font-medium tracking-tight">{block.name}</div>
