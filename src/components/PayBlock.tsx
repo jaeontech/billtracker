@@ -61,15 +61,13 @@ export default function PayBlock({ block, bills, blocks, current, onCycleStatus,
   return (
     <section ref={setNodeRef} className="mb-14">
       {/* Header */}
-      <div className={`px-6 py-4 -mx-3.5 transition-colors ${isOver ? 'bg-accent/20' : 'bg-surface-2'}`}>
-        <div className="flex justify-between items-baseline">
-          <div>
-            <div className="font-display text-xl font-medium tracking-tight">{block.name}</div>
-            <div className="text-[11.5px] text-muted mt-0.5 font-medium">
-              {dateLabel}{current ? ' · current' : ''}
-            </div>
+      <div className={`px-6 py-3 -mx-3.5 transition-colors ${isOver ? 'bg-accent/20' : 'bg-surface-2'}`}>
+        <div className="flex justify-between items-center gap-2">
+          <div className="font-display text-xl font-medium tracking-tight flex items-center gap-2 min-w-0">
+            {current && <span className="w-1.5 h-1.5 rounded-full bg-green shrink-0" title="current" />}
+            <span className="truncate">{block.name}</span>
           </div>
-          <div className="flex flex-col items-end gap-1.5 shrink-0">
+          <div className="flex items-center gap-3 shrink-0">
             <span className={`text-[9px] tracking-[0.16em] uppercase font-bold ${block.type === 'adhoc' ? 'text-accent' : 'text-faint'}`}>
               {block.type === 'adhoc' ? 'Ad-hoc' : 'Scheduled'}
             </span>
@@ -80,17 +78,13 @@ export default function PayBlock({ block, bills, blocks, current, onCycleStatus,
           </div>
         </div>
 
-        {/* Money */}
-        <div className="flex gap-6 mt-4">
-          <Figure label="Available" value={money(m.available)} />
-          <Figure label="Bills" value={money(m.billsTotal)} />
-          <Figure
-            label="Remaining"
-            value={moneySigned(m.remaining)}
-            tone={m.remaining >= 0 ? 'text-green' : 'text-red'}
-          />
+        {/* Money — single inline row */}
+        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-0.5 mt-1.5">
+          <Fig label="Available" value={money(m.available)} />
+          <Fig label="Bills" value={money(m.billsTotal)} />
+          <Fig label="Remaining" value={moneySigned(m.remaining)} tone={m.remaining >= 0 ? 'text-green' : 'text-red'} />
         </div>
-        <div className="mt-2.5 text-[11px] text-muted font-medium">
+        <div className="mt-1 text-[11px] text-muted font-medium">
           <b className="text-ink font-semibold">{money(m.paid)}</b> paid
           <span className="text-faint mx-1.5">·</span>
           <b className="text-ink font-semibold">{money(m.sent)}</b> sent
@@ -146,11 +140,11 @@ export default function PayBlock({ block, bills, blocks, current, onCycleStatus,
   )
 }
 
-function Figure({ label, value, tone }: { label: string; value: string; tone?: string }) {
+function Fig({ label, value, tone }: { label: string; value: string; tone?: string }) {
   return (
-    <div>
-      <div className="text-[9.5px] tracking-wide uppercase text-muted font-semibold">{label}</div>
-      <div className={`text-xl font-bold mt-0.5 tracking-tight tabular-nums ${tone ?? ''}`}>{value}</div>
-    </div>
+    <span className="inline-flex items-baseline gap-1.5">
+      <span className="text-[9.5px] tracking-wide uppercase text-muted font-semibold">{label}</span>
+      <span className={`text-[15px] font-bold tracking-tight tabular-nums ${tone ?? ''}`}>{value}</span>
+    </span>
   )
 }
