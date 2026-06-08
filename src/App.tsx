@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Bill, PayBlock as PayBlockT, Settings, Template } from './types'
 import * as db from './lib/db'
+import { supabase } from './lib/supabase'
 import { ensureSchedule } from './lib/schedule'
 import PayBlock from './components/PayBlock'
 import TemplatesView from './components/TemplatesView'
@@ -18,7 +19,7 @@ export default function App() {
   const [addingBlock, setAddingBlock] = useState(false)
   const [view, setView] = useState<'board' | 'templates'>('board')
 
-  async function loadAll() {
+  const loadAll = useCallback(async () => {
     try {
       const [st, tpl] = await Promise.all([db.getSettings(), db.getTemplates()])
       let [bl, bi] = await Promise.all([db.getBlocks(), db.getBills()])
@@ -33,9 +34,23 @@ export default function App() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  useEffect(() => { loadAll() }, [])
+  useEffect(() => { loadAll() }, [loadAll])
+
+  // Live sync: refetch (debounced) whenever the other device changes anything.
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>
+    const bump = () => { clearTimeout(timer); timer = setTimeout(() => loadAll(), 250) }
+    const ch = supabase
+      .channel('billtracker-board')
+      .on('postgres_changes', { event: '*', schema: 'billtracker', table: 'pay_blocks' }, bump)
+      .on('postgres_changes', { event: '*', schema: 'billtracker', table: 'bills' }, bump)
+      .on('postgres_changes', { event: '*', schema: 'billtracker', table: 'recurring_templates' }, bump)
+      .on('postgres_changes', { event: '*', schema: 'billtracker', table: 'settings' }, bump)
+      .subscribe()
+    return () => { clearTimeout(timer); supabase.removeChannel(ch) }
+  }, [loadAll])
 
   const billsByBlock = useMemo(() => {
     const map: Record<string, Bill[]> = {}
