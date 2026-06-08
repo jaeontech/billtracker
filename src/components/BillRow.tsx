@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import type { Bill, PayBlock } from '../types'
 import { daysLate, lateLevel, money } from '../lib/money'
+import { findHomeBlock } from '../lib/schedule'
 import { useLocked } from '../lib/lock'
 
 const STATUS_STYLE: Record<Bill['status'], string> = {
@@ -65,6 +66,11 @@ export default function BillRow({ bill, block, blocks, onCycleStatus, onMove, on
   // Row stands out when it deviates from the standard set: a moved/deferred bill
   // OR a one-off bill added directly to this block (no template). Edits don't count.
   const deviates = deferred || !bill.template_id
+  // Direction of a move: earlier than its home block = paying early (good → green),
+  // otherwise later/one-off = gold.
+  const home = bill.template_id ? findHomeBlock(bill.due_date, blocks) : undefined
+  const movedEarly = !!home && block.pay_date < home.pay_date
+  const tint = !deviates ? '' : movedEarly ? 'bg-green/15' : 'bg-gold/15'
 
   // Due date: compact numeric M/D (e.g. "6/20"). Lateness is shown by color only
   // (LATE_STYLE — amber/orange/red); the deferred ↩ prefix is tight.
@@ -84,7 +90,7 @@ export default function BillRow({ bill, block, blocks, onCycleStatus, onMove, on
   }
 
   return (
-    <div ref={setNodeRef} className={`flex items-center gap-2 h-8 px-2 -mx-2 rounded-md ${deviates ? 'bg-gold/15' : ''} ${bill.na ? 'opacity-50' : ''} ${isDragging ? 'opacity-30' : ''}`}>
+    <div ref={setNodeRef} className={`flex items-center gap-2 h-8 px-2 -mx-2 rounded-md ${tint} ${bill.na ? 'opacity-50' : ''} ${isDragging ? 'opacity-30' : ''}`}>
       <button
         ref={setActivatorNodeRef}
         {...listeners}
