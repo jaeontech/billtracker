@@ -140,6 +140,15 @@ export async function setBillStatus(bill: Bill, status: Bill['status']): Promise
   await logActivity('bill', bill.id, status, `${bill.name} marked ${status}`)
 }
 
+export async function setBillAmount(bill: Bill, amount: number): Promise<void> {
+  const { error } = await supabase
+    .from('bills')
+    .update({ amount, updated_at: new Date().toISOString() })
+    .eq('id', bill.id)
+  if (error) throw error
+  await logActivity('bill', bill.id, 'updated', `Changed ${bill.name} to $${amount}`)
+}
+
 export async function setBillNa(bill: Bill, na: boolean): Promise<void> {
   const { error } = await supabase.from('bills').update({ na }).eq('id', bill.id)
   if (error) throw error

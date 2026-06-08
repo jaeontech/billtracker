@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import type { Bill, PayBlock } from '../types'
 import { daysLate, lateLevel, money } from '../lib/money'
@@ -29,14 +30,23 @@ interface Props {
   onMove: (bill: Bill, toBlockId: string) => void
   onSkip: (bill: Bill, na: boolean) => void
   onDelete: (bill: Bill) => void
+  onEditAmount: (bill: Bill, amount: number) => void
 }
 
-export default function BillRow({ bill, block, blocks, onCycleStatus, onMove, onSkip, onDelete }: Props) {
+export default function BillRow({ bill, block, blocks, onCycleStatus, onMove, onSkip, onDelete, onEditAmount }: Props) {
   // Drag handle only — the rest of the row stays tappable/scrollable.
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, isDragging } = useDraggable({
     id: bill.id,
     data: { bill },
   })
+  // Inline-editable amount (template value is just the default seed).
+  const [editingAmt, setEditingAmt] = useState(false)
+  const [amt, setAmt] = useState(String(bill.amount))
+  function commitAmt() {
+    setEditingAmt(false)
+    const n = Number(amt)
+    if (!Number.isNaN(n) && n !== bill.amount) onEditAmount(bill, n)
+  }
   const late = daysLate(bill.due_date, block.pay_date)
   const level = lateLevel(late)
   const deferred = !!bill.deferred_from_block_id
@@ -72,7 +82,27 @@ export default function BillRow({ bill, block, blocks, onCycleStatus, onMove, on
       <span className={`text-[9px] tracking-wide font-semibold uppercase shrink-0 min-w-[40px] text-right ${bill.method === 'auto' ? 'text-blue' : 'text-faint'}`}>
         {bill.method}
       </span>
-      <span className="text-sm font-bold shrink-0 min-w-[54px] text-right tracking-tight">{money(bill.amount)}</span>
+      {editingAmt ? (
+        <input
+          autoFocus
+          value={amt}
+          onChange={(e) => setAmt(e.target.value)}
+          onBlur={commitAmt}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+            if (e.key === 'Escape') setEditingAmt(false)
+          }}
+          inputMode="decimal"
+          className="bg-surface rounded px-1 w-[60px] text-sm font-bold text-right tabular-nums outline-none ring-1 ring-accent/50 shrink-0"
+        />
+      ) : (
+        <button
+          onClick={() => { setAmt(String(bill.amount)); setEditingAmt(true) }}
+          className="text-sm font-bold shrink-0 min-w-[54px] text-right tracking-tight tabular-nums"
+        >
+          {money(bill.amount)}
+        </button>
+      )}
       {bill.na ? (
         <span className="text-[10.5px] font-bold tracking-wide text-faint uppercase min-w-[58px] text-right">NA</span>
       ) : (
