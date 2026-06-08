@@ -21,18 +21,27 @@ const monthName = (y: number, m0: number) => new Date(y, m0, 1).toLocaleString('
 
 interface Payday { pay_date: string; name: string }
 
-// A bill's home block = the scheduled payday on/before its due date. Shared by
-// generation and by the move logic (to clear the "deferred" tag when a bill
-// lands back home). Returns undefined for bills with no due date.
+// The canonical home payday for a due date — independent of which blocks exist:
+//   due 15–29 → that month's 15th · due 30/31 → that month's EOM · due 1–14 → previous month's EOM.
+// (Matches the spreadsheet: early-month and end-of-month bills ride the EOM check.)
+function homePayDate(dueISO: string): string {
+  const [y, m] = dueISO.split('-').map(Number)
+  const d = Number(dueISO.slice(8, 10))
+  const m0 = m - 1
+  if (d >= 15 && d <= 29) return iso(y, m0, 15)
+  if (d >= 30) return iso(y, m0, lastDayOf(y, m0))
+  const prev = new Date(y, m0 - 1, 1) // due 1–14 → previous month's EOM
+  return iso(prev.getFullYear(), prev.getMonth(), lastDayOf(prev.getFullYear(), prev.getMonth()))
+}
+
+// A bill's home block = the scheduled block whose pay_date is its home payday.
+// Returns undefined when that block doesn't exist (e.g. just outside the window),
+// so a bill is never dumped into the wrong (nearest) block. Shared by generation
+// and by the move logic (to clear the "deferred" tag when a bill lands back home).
 export function findHomeBlock(dueISO: string | null, blocks: PayBlock[]): PayBlock | undefined {
   if (!dueISO) return undefined
-  const scheduled = blocks.filter((b) => b.type === 'scheduled').sort((a, b) => a.pay_date.localeCompare(b.pay_date))
-  let home: PayBlock | undefined
-  for (const b of scheduled) {
-    if (b.pay_date <= dueISO) home = b
-    else break
-  }
-  return home
+  const target = homePayDate(dueISO)
+  return blocks.find((b) => b.type === 'scheduled' && b.pay_date === target)
 }
 
 // The two paydays of a given month.
@@ -44,11 +53,12 @@ function paydaysOfMonth(y: number, m0: number): Payday[] {
   ]
 }
 
-// Window: previous month (so current-month early bills have their home) through +3 months.
-function windowMonths(): Array<{ y: number; m0: number }> {
+// Month range relative to the current month. Previous month is included so the
+// current month's early bills (due 1–14, which home to the prior EOM) have a home.
+function monthsRange(startOff: number, endOff: number): Array<{ y: number; m0: number }> {
   const now = new Date()
   const out: Array<{ y: number; m0: number }> = []
-  for (let off = -1; off <= 3; off++) {
+  for (let off = startOff; off <= endOff; off++) {
     const d = new Date(now.getFullYear(), now.getMonth() + off, 1)
     out.push({ y: d.getFullYear(), m0: d.getMonth() })
   }
@@ -66,10 +76,14 @@ export async function ensureSchedule(
   bills: Bill[],
   templates: Template[],
 ): Promise<{ blocksCreated: number; billsCreated: number }> {
-  const months = windowMonths()
+  // Blocks: previous month through +3 months (what the board shows).
+  // Bills: one month further, so the last EOM block — which hosts early-next-month
+  // bills (due 1–14) — is fully populated, never partial.
+  const blockMonths = monthsRange(-1, 3)
+  const billMonths = monthsRange(-1, 4)
 
-  // 1) Desired paydays for the window.
-  const desired = months.flatMap((mm) => paydaysOfMonth(mm.y, mm.m0))
+  // 1) Desired paydays for the block window.
+  const desired = blockMonths.flatMap((mm) => paydaysOfMonth(mm.y, mm.m0))
 
   // 2) Create any scheduled blocks that don't exist yet (matched by pay_date).
   const existingScheduled = blocks.filter((b) => b.type === 'scheduled')
@@ -88,7 +102,7 @@ export async function ensureSchedule(
   const billsToCreate: Array<Partial<Bill>> = []
   for (const t of templates) {
     if (!t.active) continue
-    for (const mm of months) {
+    for (const mm of billMonths) {
       const day = Math.min(t.due_day, lastDayOf(mm.y, mm.m0))
       const dueISO = iso(mm.y, mm.m0, day)
       const key = `${t.id}|${dueISO.slice(0, 7)}`
