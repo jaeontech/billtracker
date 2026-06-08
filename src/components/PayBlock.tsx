@@ -18,10 +18,11 @@ interface Props {
   onEditDue: (bill: Bill, due: string | null) => void
   onToggleComplete: (block: PayBlockT, completed: boolean) => void
   onHide: (block: PayBlockT) => void
+  onEditIncome: (block: PayBlockT, income: number) => void
   onAddBill: (blockId: string, b: { name: string; amount: number; method: 'auto' | 'manual'; due_date: string | null }) => void
 }
 
-export default function PayBlock({ block, bills, blocks, onCycleStatus, onMove, onSkip, onDelete, onEditAmount, onEditName, onEditDue, onToggleComplete, onHide, onAddBill }: Props) {
+export default function PayBlock({ block, bills, blocks, onCycleStatus, onMove, onSkip, onDelete, onEditAmount, onEditName, onEditDue, onToggleComplete, onHide, onEditIncome, onAddBill }: Props) {
   const m = blockMoney(block, bills)
   const { setNodeRef, isOver } = useDroppable({ id: block.id })
   const locked = useLocked()
@@ -37,6 +38,13 @@ export default function PayBlock({ block, bills, blocks, onCycleStatus, onMove, 
     })
   }
   const [adding, setAdding] = useState(false)
+  const [editingIncome, setEditingIncome] = useState(false)
+  const [incomeVal, setIncomeVal] = useState(String(block.income))
+  function commitIncome() {
+    setEditingIncome(false)
+    const n = Number(incomeVal)
+    if (!Number.isNaN(n) && n !== block.income) onEditIncome(block, n)
+  }
   const [name, setName] = useState('')
   const [amount, setAmount] = useState('')
   const [method, setMethod] = useState<'auto' | 'manual'>('manual')
@@ -115,7 +123,21 @@ export default function PayBlock({ block, bills, blocks, onCycleStatus, onMove, 
                 <span className="text-[9px] uppercase tracking-wide text-muted font-semibold">left</span>
               </div>
               <div className="flex items-baseline gap-3.5 text-[11px]">
-                <SupFig label="Avail" value={money(m.available)} />
+                {editingIncome ? (
+                  <span className="flex items-baseline gap-1">
+                    <span className="text-[9px] uppercase tracking-wide text-muted font-semibold">Avail</span>
+                    <input autoFocus value={incomeVal} onChange={(e) => setIncomeVal(e.target.value)} onBlur={commitIncome}
+                      onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); if (e.key === 'Escape') setEditingIncome(false) }}
+                      inputMode="decimal"
+                      className="bg-bg rounded px-1 w-16 text-ink font-semibold tabular-nums outline-none ring-1 ring-accent/50" />
+                  </span>
+                ) : (
+                  <button disabled={locked} onClick={() => { setIncomeVal(String(block.income)); setEditingIncome(true) }}
+                    className="flex items-baseline gap-1">
+                    <span className="text-[9px] uppercase tracking-wide text-muted font-semibold">Avail</span>
+                    <span className="text-ink font-semibold tabular-nums">{money(m.available)}</span>
+                  </button>
+                )}
                 <SupFig label="Bills" value={money(m.billsTotal)} />
               </div>
             </div>
