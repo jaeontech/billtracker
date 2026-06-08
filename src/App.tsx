@@ -182,15 +182,9 @@ export default function App() {
                 onCycleStatus={onCycleStatus} onMove={onMove} onSkip={onSkip} onDelete={onDelete} onEditAmount={onEditAmount} onEditName={onEditName} onEditDue={onEditDue} onToggleComplete={onToggleComplete} onHide={onHide} onAddBill={onAddBill} />
             ))}
 
-            {visibleBlocks.map((block, i) => (
-              <PayBlock key={block.id} block={block} bills={billsByBlock[block.id] ?? []} blocks={moveTargets}
-                current={i === 0} dim={i > 0}
-                onCycleStatus={onCycleStatus} onMove={onMove} onSkip={onSkip} onDelete={onDelete} onEditAmount={onEditAmount} onEditName={onEditName} onEditDue={onEditDue} onToggleComplete={onToggleComplete} onHide={onHide} onAddBill={onAddBill} />
-            ))}
-
             {hiddenBlocks.length > 0 && (
               <button onClick={() => setShowHidden((v) => !v)}
-                className="block w-full text-center py-2.5 text-faint text-[12.5px] font-semibold mt-2 mb-2">
+                className="block w-full text-center py-2.5 text-faint text-[12.5px] font-semibold mb-2">
                 {showHidden ? 'Hide' : 'Show'} {hiddenBlocks.length} hidden pay block{hiddenBlocks.length > 1 ? 's' : ''}
               </button>
             )}
@@ -201,6 +195,12 @@ export default function App() {
                 <span className="flex-1 min-w-2" />
                 <button onClick={() => onUnhide(block)} className="text-muted text-[11px] font-semibold shrink-0">Unhide</button>
               </div>
+            ))}
+
+            {visibleBlocks.map((block, i) => (
+              <PayBlock key={block.id} block={block} bills={billsByBlock[block.id] ?? []} blocks={moveTargets}
+                current={i === 0} dim={i > 0}
+                onCycleStatus={onCycleStatus} onMove={onMove} onSkip={onSkip} onDelete={onDelete} onEditAmount={onEditAmount} onEditName={onEditName} onEditDue={onEditDue} onToggleComplete={onToggleComplete} onHide={onHide} onAddBill={onAddBill} />
             ))}
 
             <DragOverlay>
