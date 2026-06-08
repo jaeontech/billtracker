@@ -46,7 +46,7 @@ export default function App() {
       const [st, tpl] = await Promise.all([db.getSettings(), db.getTemplates()])
       let [bl, bi] = await Promise.all([db.getBlocks(), db.getBills()])
       // Auto-generate scheduled blocks (current + 3 months) and home bills.
-      const res = await ensureSchedule(st, bl, bi, tpl)
+      const res = await ensureSchedule(st, bl, tpl)
       if (res.blocksCreated || res.billsCreated) {
         ;[bl, bi] = await Promise.all([db.getBlocks(), db.getBills()])
       }

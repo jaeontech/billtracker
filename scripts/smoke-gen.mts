@@ -21,8 +21,8 @@ const tmpl = [
 for (const t of tmpl) await db.addTemplate(t)
 
 const [st, templates] = [await db.getSettings(), await db.getTemplates()]
-const [blocks, bills] = [await db.getBlocks(), await db.getBills()]
-const res = await ensureSchedule(st, blocks, bills, templates.filter((t) => t.name.startsWith('ZZTest')))
+const blocks = await db.getBlocks()
+const res = await ensureSchedule(st, blocks, templates.filter((t) => t.name.startsWith('ZZTest')))
 console.log('generated:', res)
 
 const blocks2 = await db.getBlocks()
