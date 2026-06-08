@@ -70,7 +70,7 @@ export default function BillRow({ bill, block, blocks, onCycleStatus, onMove, on
     const d = new Date(bill.due_date + 'T00:00')
     dueLabel = `${d.getMonth() + 1}/${d.getDate()}`
   }
-  if (deferred) dueLabel = `↩${dueLabel}`
+  // "Deferred" (moved out of its home block) is shown by a row tint, not an arrow.
 
   function onAction(e: React.ChangeEvent<HTMLSelectElement>) {
     const v = e.target.value
@@ -81,7 +81,7 @@ export default function BillRow({ bill, block, blocks, onCycleStatus, onMove, on
   }
 
   return (
-    <div ref={setNodeRef} className={`flex items-center gap-2 h-8 ${bill.na ? 'opacity-50' : ''} ${isDragging ? 'opacity-30' : ''}`}>
+    <div ref={setNodeRef} className={`flex items-center gap-2 h-8 px-2 -mx-2 rounded-md ${deferred ? 'bg-gold/15' : ''} ${bill.na ? 'opacity-50' : ''} ${isDragging ? 'opacity-30' : ''}`}>
       <button
         ref={setActivatorNodeRef}
         {...listeners}
@@ -126,7 +126,7 @@ export default function BillRow({ bill, block, blocks, onCycleStatus, onMove, on
         <button
           onClick={() => setEditingDue(true)}
           disabled={locked}
-          className={`text-[11px] font-medium shrink-0 whitespace-nowrap min-w-[44px] text-right ${deferred ? 'text-gold' : LATE_STYLE[level]}`}
+          className={`text-[11px] font-medium shrink-0 whitespace-nowrap min-w-[44px] text-right ${LATE_STYLE[level]}`}
         >
           {dueLabel}
         </button>
