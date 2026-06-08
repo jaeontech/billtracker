@@ -21,6 +21,20 @@ const monthName = (y: number, m0: number) => new Date(y, m0, 1).toLocaleString('
 
 interface Payday { pay_date: string; name: string }
 
+// A bill's home block = the scheduled payday on/before its due date. Shared by
+// generation and by the move logic (to clear the "deferred" tag when a bill
+// lands back home). Returns undefined for bills with no due date.
+export function findHomeBlock(dueISO: string | null, blocks: PayBlock[]): PayBlock | undefined {
+  if (!dueISO) return undefined
+  const scheduled = blocks.filter((b) => b.type === 'scheduled').sort((a, b) => a.pay_date.localeCompare(b.pay_date))
+  let home: PayBlock | undefined
+  for (const b of scheduled) {
+    if (b.pay_date <= dueISO) home = b
+    else break
+  }
+  return home
+}
+
 // The two paydays of a given month.
 function paydaysOfMonth(y: number, m0: number): Payday[] {
   const last = lastDayOf(y, m0)
@@ -65,16 +79,8 @@ export async function ensureSchedule(
     .map((p) => ({ name: p.name, type: 'scheduled' as const, pay_date: p.pay_date, income: settings.default_income }))
   const created = await db.insertBlocks(blocksToCreate)
 
-  // 3) All scheduled blocks we can use as homes, sorted by pay_date.
-  const scheduled = [...existingScheduled, ...created].sort((a, b) => a.pay_date.localeCompare(b.pay_date))
-  const homeFor = (dueISO: string): PayBlock | undefined => {
-    let home: PayBlock | undefined
-    for (const b of scheduled) {
-      if (b.pay_date <= dueISO) home = b // scheduled is sorted asc → last match wins
-      else break
-    }
-    return home
-  }
+  // 3) All scheduled blocks we can use as homes.
+  const scheduled = [...existingScheduled, ...created]
 
   // 4) One occurrence per (template, due-month). Skip if it already exists anywhere
   //    (so a moved bill isn't duplicated).
@@ -87,7 +93,7 @@ export async function ensureSchedule(
       const dueISO = iso(mm.y, mm.m0, day)
       const key = `${t.id}|${dueISO.slice(0, 7)}`
       if (seen.has(key)) continue
-      const home = homeFor(dueISO)
+      const home = findHomeBlock(dueISO, scheduled)
       if (!home) continue
       seen.add(key)
       billsToCreate.push({

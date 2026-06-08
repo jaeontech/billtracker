@@ -146,11 +146,12 @@ export async function setBillNa(bill: Bill, na: boolean): Promise<void> {
   await logActivity('bill', bill.id, na ? 'skipped' : 'updated', `${bill.name} ${na ? 'skipped (NA)' : 'un-skipped'}`)
 }
 
-// Move a bill to another block (defer/catch-up). Tags it as deferred-from the source.
-export async function moveBill(bill: Bill, toBlock: PayBlock, fromBlock: PayBlock): Promise<void> {
+// Move a bill to another block. `deferredFrom` is the bill's home-block id when it's
+// landing away from home (shows the ↩ tag), or null when it's back in its home block.
+export async function moveBill(bill: Bill, toBlock: PayBlock, deferredFrom: string | null): Promise<void> {
   const { error } = await supabase
     .from('bills')
-    .update({ pay_block_id: toBlock.id, deferred_from_block_id: fromBlock.id })
+    .update({ pay_block_id: toBlock.id, deferred_from_block_id: deferredFrom })
     .eq('id', bill.id)
   if (error) throw error
   await logActivity('bill', bill.id, 'moved', `Moved ${bill.name} → ${toBlock.name}`)

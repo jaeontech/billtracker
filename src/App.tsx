@@ -6,7 +6,7 @@ import {
 import type { Bill, PayBlock as PayBlockT, Settings, Template } from './types'
 import * as db from './lib/db'
 import { supabase } from './lib/supabase'
-import { ensureSchedule } from './lib/schedule'
+import { ensureSchedule, findHomeBlock } from './lib/schedule'
 import { daysLate, money } from './lib/money'
 import PayBlock from './components/PayBlock'
 import TemplatesView from './components/TemplatesView'
@@ -83,17 +83,25 @@ export default function App() {
   const onCycleStatus = (bill: Bill, next: Bill['status']) => run(db.setBillStatus(bill, next))
   const onSkip = (bill: Bill, na: boolean) => run(db.setBillNa(bill, na))
   const onDelete = (bill: Bill) => run(db.deleteBill(bill))
+  const performMove = (bill: Bill, to: PayBlockT) => {
+    const home = findHomeBlock(bill.due_date, blocks)
+    // Clear the deferred tag when it lands back in its home block; otherwise mark
+    // it deferred from home (the ↩ means "not where it naturally belongs").
+    const deferredFrom = home && home.id === to.id ? null : home?.id ?? bill.pay_block_id
+    run(db.moveBill(bill, to, deferredFrom))
+  }
   const onMove = (bill: Bill, toBlockId: string) => {
-    const from = blocks.find((b) => b.id === bill.pay_block_id)
     const to = blocks.find((b) => b.id === toBlockId)
-    if (!from || !to) return
+    if (!to || to.id === bill.pay_block_id) return
     // Guardrail: warn before a move that lands the bill 30+ days past due.
     const days = daysLate(bill.due_date, to.pay_date)
-    if (days !== null && days >= 30) setGuard({ bill, from, to, days })
-    else run(db.moveBill(bill, to, from))
+    if (days !== null && days >= 30) {
+      const from = blocks.find((b) => b.id === bill.pay_block_id)!
+      setGuard({ bill, from, to, days })
+    } else performMove(bill, to)
   }
   const confirmMove = () => {
-    if (guard) run(db.moveBill(guard.bill, guard.to, guard.from))
+    if (guard) performMove(guard.bill, guard.to)
     setGuard(null)
   }
   const onAddBill = (blockId: string, b: { name: string; amount: number; method: 'auto' | 'manual'; due_date: string | null }) =>
