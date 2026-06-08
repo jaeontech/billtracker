@@ -62,6 +62,9 @@ export default function BillRow({ bill, block, blocks, onCycleStatus, onMove, on
   const late = daysLate(bill.due_date, block.pay_date)
   const level = lateLevel(late)
   const deferred = !!bill.deferred_from_block_id
+  // Row stands out when it deviates from the standard set: a moved/deferred bill
+  // OR a one-off bill added directly to this block (no template). Edits don't count.
+  const deviates = deferred || !bill.template_id
 
   // Due date: compact numeric M/D (e.g. "6/20"). Lateness is shown by color only
   // (LATE_STYLE — amber/orange/red); the deferred ↩ prefix is tight.
@@ -81,7 +84,7 @@ export default function BillRow({ bill, block, blocks, onCycleStatus, onMove, on
   }
 
   return (
-    <div ref={setNodeRef} className={`flex items-center gap-2 h-8 px-2 -mx-2 rounded-md ${deferred ? 'bg-gold/15' : ''} ${bill.na ? 'opacity-50' : ''} ${isDragging ? 'opacity-30' : ''}`}>
+    <div ref={setNodeRef} className={`flex items-center gap-2 h-8 px-2 -mx-2 rounded-md ${deviates ? 'bg-gold/15' : ''} ${bill.na ? 'opacity-50' : ''} ${isDragging ? 'opacity-30' : ''}`}>
       <button
         ref={setActivatorNodeRef}
         {...listeners}
