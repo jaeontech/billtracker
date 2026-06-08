@@ -8,7 +8,6 @@ interface Props {
   block: PayBlockT
   bills: Bill[]
   blocks: PayBlockT[]
-  current?: boolean
   onCycleStatus: (bill: Bill, next: Bill['status']) => void
   onMove: (bill: Bill, toBlockId: string) => void
   onSkip: (bill: Bill, na: boolean) => void
@@ -21,7 +20,7 @@ interface Props {
   onAddBill: (blockId: string, b: { name: string; amount: number; method: 'auto' | 'manual'; due_date: string | null }) => void
 }
 
-export default function PayBlock({ block, bills, blocks, current, onCycleStatus, onMove, onSkip, onDelete, onEditAmount, onEditName, onEditDue, onToggleComplete, onHide, onAddBill }: Props) {
+export default function PayBlock({ block, bills, blocks, onCycleStatus, onMove, onSkip, onDelete, onEditAmount, onEditName, onEditDue, onToggleComplete, onHide, onAddBill }: Props) {
   const m = blockMoney(block, bills)
   const { setNodeRef, isOver } = useDroppable({ id: block.id })
   // Collapse the bill list — a per-device view preference, persisted in localStorage.
@@ -73,44 +72,52 @@ export default function PayBlock({ block, bills, blocks, current, onCycleStatus,
     <section ref={setNodeRef} className="mb-14">
       {/* Header */}
       <div className={`px-6 py-3 -mx-3.5 transition-colors ${isOver ? 'bg-accent/20' : 'bg-surface-2'}`}>
-        <div className="flex justify-between items-center gap-2">
-          <button onClick={toggleCollapsed} className="flex items-center gap-2 min-w-0 text-left">
-            <span className={`text-faint text-[10px] shrink-0 transition-transform duration-150 ${collapsed ? '' : 'rotate-90'}`}>▶</span>
-            {current && <span className="w-1.5 h-1.5 rounded-full bg-green shrink-0" title="current" />}
-            <span className="font-display text-xl font-medium tracking-tight truncate">{block.name}</span>
-            {collapsed && bills.length > 0 && (
-              <span className="text-faint text-[11px] font-medium shrink-0">· {bills.length}</span>
-            )}
+        <div className="flex gap-2.5">
+          {/* chevron gutter */}
+          <button onClick={toggleCollapsed} aria-label="Toggle bills"
+            className={`text-faint text-[10px] shrink-0 pt-1 transition-transform duration-150 ${collapsed ? '' : 'rotate-90'}`}>
+            ▶
           </button>
-          <div className="flex items-center gap-3 shrink-0">
-            <span className={`text-[9px] tracking-[0.16em] uppercase font-bold ${block.type === 'adhoc' ? 'text-accent' : 'text-faint'}`}>
-              {block.type === 'adhoc' ? 'Ad-hoc' : 'Scheduled'}
-            </span>
-            <button onClick={() => onToggleComplete(block, true)} className="flex items-center gap-1 text-[10px] font-semibold text-muted">
-              <span className="w-3.5 h-3.5 rounded-full border border-muted flex items-center justify-center text-[8px] leading-none">✓</span>
-              Done
-            </button>
-          </div>
-        </div>
+          {/* content column — name, money, status all align here */}
+          <div className="flex-1 min-w-0">
+            <div className="flex justify-between items-center gap-2">
+              <button onClick={toggleCollapsed} className="flex items-baseline gap-2 min-w-0 text-left">
+                <span className="font-display text-xl font-medium tracking-tight truncate">{block.name}</span>
+                {collapsed && bills.length > 0 && (
+                  <span className="text-faint text-[11px] font-medium shrink-0">· {bills.length}</span>
+                )}
+              </button>
+              <div className="flex items-center gap-3 shrink-0">
+                <span className={`text-[9px] tracking-[0.16em] uppercase font-bold ${block.type === 'adhoc' ? 'text-accent' : 'text-faint'}`}>
+                  {block.type === 'adhoc' ? 'Ad-hoc' : 'Scheduled'}
+                </span>
+                <button onClick={() => onToggleComplete(block, true)} className="flex items-center gap-1 text-[10px] font-semibold text-muted">
+                  <span className="w-3.5 h-3.5 rounded-full border border-muted flex items-center justify-center text-[8px] leading-none">✓</span>
+                  Done
+                </button>
+              </div>
+            </div>
 
-        {/* Money — big Remaining headline anchors the row; Avail/Bills support it */}
-        <div className="flex items-baseline justify-between gap-3 mt-2">
-          <div className="flex items-baseline gap-1.5 shrink-0">
-            <span className={`text-[23px] font-bold tabular-nums tracking-tight leading-none ${m.remaining >= 0 ? 'text-green' : 'text-red'}`}>
-              {moneySigned(m.remaining)}
-            </span>
-            <span className="text-[9px] uppercase tracking-wide text-muted font-semibold">left</span>
+            {/* Money — big Remaining headline anchors the row; Avail/Bills support it */}
+            <div className="flex items-baseline justify-between gap-3 mt-2">
+              <div className="flex items-baseline gap-1.5 shrink-0">
+                <span className={`text-[23px] font-bold tabular-nums tracking-tight leading-none ${m.remaining >= 0 ? 'text-green' : 'text-red'}`}>
+                  {moneySigned(m.remaining)}
+                </span>
+                <span className="text-[9px] uppercase tracking-wide text-muted font-semibold">left</span>
+              </div>
+              <div className="flex items-baseline gap-3.5 text-[11px]">
+                <SupFig label="Avail" value={money(m.available)} />
+                <SupFig label="Bills" value={money(m.billsTotal)} />
+              </div>
+            </div>
+            {/* Status breakdown — zoned off below a hairline */}
+            <div className="flex gap-4 mt-2 pt-2 border-t border-white/10 text-[10.5px] font-medium">
+              <StatusBit label="Paid" value={money(m.paid)} tone="text-green" />
+              <StatusBit label="Sent" value={money(m.sent)} tone="text-blue" />
+              <StatusBit label="Open" value={money(m.open)} tone="text-muted" />
+            </div>
           </div>
-          <div className="flex items-baseline gap-3.5 text-[11px]">
-            <SupFig label="Avail" value={money(m.available)} />
-            <SupFig label="Bills" value={money(m.billsTotal)} />
-          </div>
-        </div>
-        {/* Status breakdown — zoned off below a hairline */}
-        <div className="flex gap-4 mt-2 pt-2 border-t border-white/10 text-[10.5px] font-medium">
-          <StatusBit label="Paid" value={money(m.paid)} tone="text-green" />
-          <StatusBit label="Sent" value={money(m.sent)} tone="text-blue" />
-          <StatusBit label="Open" value={money(m.open)} tone="text-muted" />
         </div>
       </div>
 

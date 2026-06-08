@@ -197,9 +197,8 @@ export default function App() {
               </div>
             ))}
 
-            {visibleBlocks.map((block, i) => (
+            {visibleBlocks.map((block) => (
               <PayBlock key={block.id} block={block} bills={billsByBlock[block.id] ?? []} blocks={moveTargets}
-                current={i === 0}
                 onCycleStatus={onCycleStatus} onMove={onMove} onSkip={onSkip} onDelete={onDelete} onEditAmount={onEditAmount} onEditName={onEditName} onEditDue={onEditDue} onToggleComplete={onToggleComplete} onHide={onHide} onAddBill={onAddBill} />
             ))}
 
