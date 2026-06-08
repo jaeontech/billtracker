@@ -8,6 +8,7 @@ import * as db from './lib/db'
 import { supabase } from './lib/supabase'
 import { ensureSchedule, findHomeBlock } from './lib/schedule'
 import { daysLate, money } from './lib/money'
+import { LockContext } from './lib/lock'
 import PayBlock from './components/PayBlock'
 import TemplatesView from './components/TemplatesView'
 
@@ -24,6 +25,16 @@ export default function App() {
   const [showHidden, setShowHidden] = useState(false)
   const [addingBlock, setAddingBlock] = useState(false)
   const [view, setView] = useState<'board' | 'templates'>('board')
+  // Page-wide read-only lock — defaults to locked so you can't fat-finger an edit
+  // while just looking. Persisted per-device.
+  const [locked, setLocked] = useState(() => {
+    try { return localStorage.getItem('bt:locked') !== '0' } catch { return true }
+  })
+  const toggleLocked = () => setLocked((v) => {
+    const nv = !v
+    try { localStorage.setItem('bt:locked', nv ? '1' : '0') } catch { /* ignore */ }
+    return nv
+  })
   // 30-day guardrail: holds a pending move that would push a bill 30+ days late.
   const [guard, setGuard] = useState<{ bill: Bill; from: PayBlockT; to: PayBlockT; days: number } | null>(null)
   // Drag-and-drop: the bill currently being dragged (for the floating overlay).
@@ -121,15 +132,17 @@ export default function App() {
   const onUnhide = (block: PayBlockT) => run(db.setBlockHidden(block, false))
 
   // Drag handlers reuse onMove → the 30-day guardrail applies to drag too.
-  const onDragStart = (e: DragStartEvent) => setActiveBill((e.active.data.current?.bill as Bill) ?? null)
+  const onDragStart = (e: DragStartEvent) => { if (!locked) setActiveBill((e.active.data.current?.bill as Bill) ?? null) }
   const onDragEnd = (e: DragEndEvent) => {
     setActiveBill(null)
+    if (locked) return
     const bill = e.active.data.current?.bill as Bill | undefined
     const overId = e.over?.id as string | undefined
     if (bill && overId && overId !== bill.pay_block_id) onMove(bill, overId)
   }
 
   return (
+    <LockContext.Provider value={locked}>
     <div className="min-h-dvh flex justify-center">
       <div className="w-full max-w-[460px] px-3.5 pb-28">
         <header className="pt-12 pb-3 flex justify-between items-end">
@@ -139,12 +152,18 @@ export default function App() {
             </div>
             <h1 className="font-display text-3xl font-medium tracking-tight mt-0.5">Bill Tracker</h1>
           </div>
-          {view === 'board' && (
-            <button onClick={() => setAddingBlock((v) => !v)}
-              className="rounded-full bg-accent text-[#07150e] w-11 h-11 text-2xl font-light flex items-center justify-center">
-              {addingBlock ? '×' : '+'}
+          <div className="flex items-center gap-2">
+            {!locked && view === 'board' && (
+              <button onClick={() => setAddingBlock((v) => !v)}
+                className="rounded-full bg-accent text-[#07150e] w-11 h-11 text-2xl font-light flex items-center justify-center">
+                {addingBlock ? '×' : '+'}
+              </button>
+            )}
+            <button onClick={toggleLocked}
+              className={`rounded-full h-9 px-3 text-[12px] font-semibold flex items-center gap-1.5 ${locked ? 'bg-surface text-muted' : 'bg-accent/20 text-accent'}`}>
+              {locked ? '🔒 Locked' : '🔓 Editing'}
             </button>
-          )}
+          </div>
         </header>
 
         {loading && <div className="text-muted text-sm py-8">Loading…</div>}
@@ -163,7 +182,7 @@ export default function App() {
 
         {!loading && view === 'board' && (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={onDragStart} onDragEnd={onDragEnd}>
-            {addingBlock && <AddBlockForm onDone={() => { setAddingBlock(false); loadAll() }} defaultDate={todayISO()} />}
+            {!locked && addingBlock && <AddBlockForm onDone={() => { setAddingBlock(false); loadAll() }} defaultDate={todayISO()} />}
 
             {blocks.length === 0 && !addingBlock && (
               <div className="text-center py-16">
@@ -239,6 +258,7 @@ export default function App() {
         </div>
       )}
     </div>
+    </LockContext.Provider>
   )
 }
 

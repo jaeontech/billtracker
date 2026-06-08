@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { Settings, Template } from '../types'
 import { money } from '../lib/money'
+import { useLocked } from '../lib/lock'
 
 interface Props {
   templates: Template[]
@@ -14,9 +15,14 @@ interface Props {
 export default function TemplatesView({ templates, settings, onAdd, onUpdate, onDelete, onSetDefaultIncome }: Props) {
   const [income, setIncome] = useState(String(settings.default_income))
   const total = templates.filter((t) => t.active).reduce((s, t) => s + t.amount, 0)
+  const locked = useLocked()
 
   return (
-    <div className="pt-2">
+    <>
+      {locked && (
+        <div className="text-center text-faint text-[12px] py-2">🔒 Locked — tap the lock in the header to edit</div>
+      )}
+    <div className={`pt-2 ${locked ? 'pointer-events-none select-none opacity-70' : ''}`}>
       {/* Default paycheck */}
       <div className="bg-surface rounded-2xl p-4 mb-5">
         <div className="text-[9.5px] tracking-wide uppercase text-muted font-semibold">Default paycheck income</div>
@@ -42,6 +48,7 @@ export default function TemplatesView({ templates, settings, onAdd, onUpdate, on
 
       <AddTemplate onAdd={onAdd} />
     </div>
+    </>
   )
 }
 

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import type { Bill, PayBlock } from '../types'
 import { daysLate, lateLevel, money } from '../lib/money'
+import { useLocked } from '../lib/lock'
 
 const STATUS_STYLE: Record<Bill['status'], string> = {
   paid: 'text-green',
@@ -41,6 +42,7 @@ export default function BillRow({ bill, block, blocks, onCycleStatus, onMove, on
     id: bill.id,
     data: { bill },
   })
+  const locked = useLocked()
   // Inline-editable fields (template values are just the default seeds).
   const [editingAmt, setEditingAmt] = useState(false)
   const [amt, setAmt] = useState(String(bill.amount))
@@ -84,7 +86,8 @@ export default function BillRow({ bill, block, blocks, onCycleStatus, onMove, on
         ref={setActivatorNodeRef}
         {...listeners}
         {...attributes}
-        className="touch-none cursor-grab active:cursor-grabbing text-faint text-[13px] leading-none px-0.5 -ml-1 shrink-0 select-none"
+        disabled={locked}
+        className={`touch-none cursor-grab active:cursor-grabbing text-faint text-[13px] leading-none px-0.5 -ml-1 shrink-0 select-none ${locked ? 'invisible' : ''}`}
         title="Drag to move"
       >
         ⠿
@@ -104,6 +107,7 @@ export default function BillRow({ bill, block, blocks, onCycleStatus, onMove, on
       ) : (
         <button
           onClick={() => { setNameVal(bill.name); setEditingName(true) }}
+          disabled={locked}
           className="text-sm font-semibold truncate flex-1 min-w-0 text-left"
         >
           {bill.name}
@@ -121,6 +125,7 @@ export default function BillRow({ bill, block, blocks, onCycleStatus, onMove, on
       ) : (
         <button
           onClick={() => setEditingDue(true)}
+          disabled={locked}
           className={`text-[11px] font-medium shrink-0 whitespace-nowrap min-w-[44px] text-right ${deferred ? 'text-gold' : LATE_STYLE[level]}`}
         >
           {dueLabel}
@@ -148,6 +153,7 @@ export default function BillRow({ bill, block, blocks, onCycleStatus, onMove, on
       ) : (
         <button
           onClick={() => { setAmt(String(bill.amount)); setEditingAmt(true) }}
+          disabled={locked}
           className="text-sm font-bold shrink-0 min-w-[54px] text-right tracking-tight tabular-nums"
         >
           {money(bill.amount)}
@@ -158,6 +164,7 @@ export default function BillRow({ bill, block, blocks, onCycleStatus, onMove, on
       ) : (
         <button
           onClick={() => onCycleStatus(bill, NEXT[bill.status])}
+          disabled={locked}
           className={`text-[10.5px] font-bold tracking-wide uppercase min-w-[40px] text-right ${STATUS_STYLE[bill.status]}`}
         >
           {bill.status === 'upcoming' ? 'Open' : bill.status}
@@ -167,7 +174,8 @@ export default function BillRow({ bill, block, blocks, onCycleStatus, onMove, on
       <select
         onChange={onAction}
         defaultValue=""
-        className="bg-transparent text-faint text-base w-5 shrink-0 outline-none cursor-pointer appearance-none"
+        disabled={locked}
+        className={`bg-transparent text-faint text-base w-5 shrink-0 outline-none cursor-pointer appearance-none ${locked ? 'invisible' : ''}`}
         title="Actions"
       >
         <option value="" disabled>⋯</option>

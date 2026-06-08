@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useDroppable } from '@dnd-kit/core'
 import type { Bill, PayBlock as PayBlockT } from '../types'
 import { blockMoney, money, moneySigned } from '../lib/money'
+import { useLocked } from '../lib/lock'
 import BillRow from './BillRow'
 
 interface Props {
@@ -23,6 +24,7 @@ interface Props {
 export default function PayBlock({ block, bills, blocks, onCycleStatus, onMove, onSkip, onDelete, onEditAmount, onEditName, onEditDue, onToggleComplete, onHide, onAddBill }: Props) {
   const m = blockMoney(block, bills)
   const { setNodeRef, isOver } = useDroppable({ id: block.id })
+  const locked = useLocked()
   // Collapse the bill list — a per-device view preference, persisted in localStorage.
   const [collapsed, setCollapsed] = useState(() => {
     try { return localStorage.getItem(`bt:collapsed:${block.id}`) === '1' } catch { return false }
@@ -62,8 +64,12 @@ export default function PayBlock({ block, bills, blocks, onCycleStatus, onMove, 
         <span className="text-faint text-[11px] shrink-0">{dateLabel}</span>
         <span className="flex-1 min-w-2" />
         <span className="font-bold tabular-nums shrink-0 text-muted">{moneySigned(m.remaining)}</span>
-        <button onClick={() => onToggleComplete(block, false)} className="text-muted text-[11px] font-semibold shrink-0">Reopen</button>
-        <button onClick={() => onHide(block)} className="text-faint text-[11px] font-semibold shrink-0">Hide</button>
+        {!locked && (
+          <>
+            <button onClick={() => onToggleComplete(block, false)} className="text-muted text-[11px] font-semibold shrink-0">Reopen</button>
+            <button onClick={() => onHide(block)} className="text-faint text-[11px] font-semibold shrink-0">Hide</button>
+          </>
+        )}
       </div>
     )
   }
@@ -91,10 +97,12 @@ export default function PayBlock({ block, bills, blocks, onCycleStatus, onMove, 
                 <span className={`text-[9px] tracking-[0.16em] uppercase font-bold ${block.type === 'adhoc' ? 'text-accent' : 'text-faint'}`}>
                   {block.type === 'adhoc' ? 'Ad-hoc' : 'Scheduled'}
                 </span>
-                <button onClick={() => onToggleComplete(block, true)} className="flex items-center gap-1 text-[10px] font-semibold text-muted">
-                  <span className="w-3.5 h-3.5 rounded-full border border-muted flex items-center justify-center text-[8px] leading-none">✓</span>
-                  Done
-                </button>
+                {!locked && (
+                  <button onClick={() => onToggleComplete(block, true)} className="flex items-center gap-1 text-[10px] font-semibold text-muted">
+                    <span className="w-3.5 h-3.5 rounded-full border border-muted flex items-center justify-center text-[8px] leading-none">✓</span>
+                    Done
+                  </button>
+                )}
               </div>
             </div>
 
@@ -146,7 +154,7 @@ export default function PayBlock({ block, bills, blocks, onCycleStatus, onMove, 
       </div>
 
       {/* Add bill */}
-      {adding ? (
+      {!locked && (adding ? (
         <div className="pl-[30px] pr-4 mt-2 flex flex-wrap items-center gap-2">
           <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Bill name"
             className="bg-surface rounded-lg px-3 py-2 text-sm outline-none flex-1 min-w-[120px]" />
@@ -165,7 +173,7 @@ export default function PayBlock({ block, bills, blocks, onCycleStatus, onMove, 
         <button onClick={() => setAdding(true)} className="pl-[30px] pt-3 text-muted text-[12.5px] font-semibold">
           + Add bill
         </button>
-      )}
+      ))}
       </>
       )}
     </section>
