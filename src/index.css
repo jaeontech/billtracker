@@ -19,7 +19,8 @@
   --color-gold: #c9b98a;
   --color-accent: #4fa37b;
 
-  --font-display: "Fraunces", Georgia, serif;
+  /* Titles now use the same family as body text (was Fraunces serif). */
+  --font-display: "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
   --font-body: "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
 }
 
