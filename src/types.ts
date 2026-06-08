@@ -34,6 +34,16 @@ export interface Bill {
   updated_at: string
 }
 
+export interface Template {
+  id: string
+  name: string
+  amount: number
+  method: Method
+  due_day: number // 1–31; drives the "home" block
+  active: boolean
+  created_at: string
+}
+
 export interface Settings {
   id: number
   default_income: number

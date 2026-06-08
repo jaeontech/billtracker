@@ -1,24 +1,33 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { Bill, PayBlock as PayBlockT } from './types'
+import type { Bill, PayBlock as PayBlockT, Settings, Template } from './types'
 import * as db from './lib/db'
+import { ensureSchedule } from './lib/schedule'
 import PayBlock from './components/PayBlock'
+import TemplatesView from './components/TemplatesView'
 
 const todayISO = () => new Date().toISOString().slice(0, 10)
 
 export default function App() {
   const [blocks, setBlocks] = useState<PayBlockT[]>([])
   const [bills, setBills] = useState<Bill[]>([])
+  const [templates, setTemplates] = useState<Template[]>([])
+  const [settings, setSettings] = useState<Settings | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showPast, setShowPast] = useState(false)
   const [addingBlock, setAddingBlock] = useState(false)
+  const [view, setView] = useState<'board' | 'templates'>('board')
 
-  async function refresh() {
+  async function loadAll() {
     try {
-      const [bl, bi] = await Promise.all([db.getBlocks(), db.getBills()])
-      setBlocks(bl)
-      setBills(bi)
-      setError(null)
+      const [st, tpl] = await Promise.all([db.getSettings(), db.getTemplates()])
+      let [bl, bi] = await Promise.all([db.getBlocks(), db.getBills()])
+      // Auto-generate scheduled blocks (current + 3 months) and home bills.
+      const res = await ensureSchedule(st, bl, bi, tpl)
+      if (res.blocksCreated || res.billsCreated) {
+        ;[bl, bi] = await Promise.all([db.getBlocks(), db.getBills()])
+      }
+      setSettings(st); setTemplates(tpl); setBlocks(bl); setBills(bi); setError(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
@@ -26,7 +35,7 @@ export default function App() {
     }
   }
 
-  useEffect(() => { refresh() }, [])
+  useEffect(() => { loadAll() }, [])
 
   const billsByBlock = useMemo(() => {
     const map: Record<string, Bill[]> = {}
@@ -34,7 +43,6 @@ export default function App() {
     return map
   }, [bills])
 
-  // current = last block whose pay date is on/before today (else the first block)
   const currentIdx = useMemo(() => {
     const t = todayISO()
     let idx = blocks.findIndex((b) => b.pay_date > t)
@@ -46,8 +54,7 @@ export default function App() {
   const pastBlocks = blocks.slice(0, currentIdx)
   const visibleBlocks = blocks.slice(currentIdx)
 
-  // ─── handlers ──────────────────────────────────────────────────────────────
-  const run = (p: Promise<unknown>) => p.then(refresh).catch((e) => setError(String(e)))
+  const run = (p: Promise<unknown>) => p.then(loadAll).catch((e) => setError(String(e)))
   const onCycleStatus = (bill: Bill, next: Bill['status']) => run(db.setBillStatus(bill, next))
   const onSkip = (bill: Bill, na: boolean) => run(db.setBillNa(bill, na))
   const onDelete = (bill: Bill) => run(db.deleteBill(bill))
@@ -61,8 +68,7 @@ export default function App() {
 
   return (
     <div className="min-h-dvh flex justify-center">
-      <div className="w-full max-w-[460px] px-3.5 pb-24">
-        {/* Header */}
+      <div className="w-full max-w-[460px] px-3.5 pb-28">
         <header className="pt-12 pb-3 flex justify-between items-end">
           <div>
             <div className="text-[10.5px] tracking-[0.18em] uppercase text-muted font-semibold">
@@ -70,44 +76,73 @@ export default function App() {
             </div>
             <h1 className="font-display text-3xl font-medium tracking-tight mt-0.5">Bill Tracker</h1>
           </div>
-          <button onClick={() => setAddingBlock((v) => !v)}
-            className="rounded-full bg-accent text-[#07150e] w-11 h-11 text-2xl font-light flex items-center justify-center">
-            {addingBlock ? '×' : '+'}
-          </button>
+          {view === 'board' && (
+            <button onClick={() => setAddingBlock((v) => !v)}
+              className="rounded-full bg-accent text-[#07150e] w-11 h-11 text-2xl font-light flex items-center justify-center">
+              {addingBlock ? '×' : '+'}
+            </button>
+          )}
         </header>
-
-        {addingBlock && <AddBlockForm onDone={() => { setAddingBlock(false); refresh() }} defaultDate={todayISO()} />}
 
         {loading && <div className="text-muted text-sm py-8">Loading…</div>}
         {error && <div className="text-red text-sm py-4 bg-red/10 rounded-xl px-4 my-2">{error}</div>}
 
-        {!loading && blocks.length === 0 && !addingBlock && (
-          <div className="text-center py-16">
-            <p className="text-muted text-sm">No pay blocks yet.</p>
-            <button onClick={() => setAddingBlock(true)} className="mt-3 text-accent font-semibold">+ Add your first pay block</button>
-          </div>
+        {!loading && view === 'templates' && settings && (
+          <TemplatesView
+            templates={templates}
+            settings={settings}
+            onAdd={(t) => run(db.addTemplate(t))}
+            onUpdate={(t, patch) => run(db.updateTemplate(t, patch))}
+            onDelete={(t) => run(db.deleteTemplate(t))}
+            onSetDefaultIncome={(n) => run(db.setDefaultIncome(n))}
+          />
         )}
 
-        {/* Past toggle */}
-        {pastBlocks.length > 0 && (
-          <button onClick={() => setShowPast((v) => !v)}
-            className="block w-full text-center py-2.5 text-muted text-[12.5px] font-semibold mb-2">
-            {showPast ? 'Hide' : 'Show'} {pastBlocks.length} past pay block{pastBlocks.length > 1 ? 's' : ''}
-          </button>
-        )}
-        {showPast && pastBlocks.map((block) => (
-          <PayBlock key={block.id} block={block} bills={billsByBlock[block.id] ?? []} blocks={blocks} dim
-            onCycleStatus={onCycleStatus} onMove={onMove} onSkip={onSkip} onDelete={onDelete} onAddBill={onAddBill} />
-        ))}
+        {!loading && view === 'board' && (
+          <>
+            {addingBlock && <AddBlockForm onDone={() => { setAddingBlock(false); loadAll() }} defaultDate={todayISO()} />}
 
-        {/* Current + future */}
-        {visibleBlocks.map((block, i) => (
-          <PayBlock key={block.id} block={block} bills={billsByBlock[block.id] ?? []} blocks={blocks}
-            current={i === 0} dim={i > 0}
-            onCycleStatus={onCycleStatus} onMove={onMove} onSkip={onSkip} onDelete={onDelete} onAddBill={onAddBill} />
-        ))}
+            {blocks.length === 0 && !addingBlock && (
+              <div className="text-center py-16">
+                <p className="text-muted text-sm">No pay blocks yet — add recurring bills in Templates and they'll generate automatically.</p>
+              </div>
+            )}
+
+            {pastBlocks.length > 0 && (
+              <button onClick={() => setShowPast((v) => !v)}
+                className="block w-full text-center py-2.5 text-muted text-[12.5px] font-semibold mb-2">
+                {showPast ? 'Hide' : 'Show'} {pastBlocks.length} past pay block{pastBlocks.length > 1 ? 's' : ''}
+              </button>
+            )}
+            {showPast && pastBlocks.map((block) => (
+              <PayBlock key={block.id} block={block} bills={billsByBlock[block.id] ?? []} blocks={blocks} dim
+                onCycleStatus={onCycleStatus} onMove={onMove} onSkip={onSkip} onDelete={onDelete} onAddBill={onAddBill} />
+            ))}
+
+            {visibleBlocks.map((block, i) => (
+              <PayBlock key={block.id} block={block} bills={billsByBlock[block.id] ?? []} blocks={blocks}
+                current={i === 0} dim={i > 0}
+                onCycleStatus={onCycleStatus} onMove={onMove} onSkip={onSkip} onDelete={onDelete} onAddBill={onAddBill} />
+            ))}
+          </>
+        )}
       </div>
+
+      {/* Bottom nav */}
+      <nav className="fixed bottom-0 inset-x-0 h-[68px] bg-gradient-to-b from-transparent to-bg flex items-end justify-center gap-12 pb-4 pointer-events-none">
+        <Tab label="Board" on={view === 'board'} onClick={() => setView('board')} />
+        <Tab label="Templates" on={view === 'templates'} onClick={() => setView('templates')} />
+      </nav>
     </div>
+  )
+}
+
+function Tab({ label, on, onClick }: { label: string; on: boolean; onClick: () => void }) {
+  return (
+    <button onClick={onClick}
+      className={`pointer-events-auto text-[12px] font-semibold ${on ? 'text-ink' : 'text-faint'}`}>
+      {label}
+    </button>
   )
 }
 
@@ -124,7 +159,7 @@ function AddBlockForm({ onDone, defaultDate }: { onDone: () => void; defaultDate
 
   return (
     <div className="bg-surface rounded-2xl p-4 mb-4 flex flex-wrap items-center gap-2">
-      <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Pay block name (e.g. June 15 Paycheck)"
+      <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Ad-hoc block (e.g. June Stock)"
         className="bg-bg rounded-lg px-3 py-2 text-sm outline-none flex-1 min-w-[160px]" />
       <input value={date} onChange={(e) => setDate(e.target.value)} type="date"
         className="bg-bg rounded-lg px-3 py-2 text-sm outline-none text-muted" />

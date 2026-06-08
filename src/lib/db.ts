@@ -2,12 +2,15 @@
 // (set as the client default). Money columns come back as strings → coerce to
 // numbers here so the rest of the app only ever sees numbers.
 import { supabase } from './supabase'
-import type { Bill, PayBlock, Settings } from '../types'
+import type { Bill, PayBlock, Settings, Template } from '../types'
 
 function numBlock(r: any): PayBlock {
   return { ...r, income: Number(r.income) }
 }
 function numBill(r: any): Bill {
+  return { ...r, amount: Number(r.amount) }
+}
+function numTemplate(r: any): Template {
   return { ...r, amount: Number(r.amount) }
 }
 
@@ -28,6 +31,56 @@ export async function getBills(): Promise<Bill[]> {
   const { data, error } = await supabase.from('bills').select('*').order('due_date')
   if (error) throw error
   return data.map(numBill)
+}
+
+export async function getTemplates(): Promise<Template[]> {
+  const { data, error } = await supabase.from('recurring_templates').select('*').order('due_day')
+  if (error) throw error
+  return data.map(numTemplate)
+}
+
+// ─── Recurring templates (the standard bills) ────────────────────────────────
+export async function addTemplate(input: {
+  name: string; amount: number; method: 'auto' | 'manual'; due_day: number
+}): Promise<void> {
+  const { error } = await supabase.from('recurring_templates').insert(input)
+  if (error) throw error
+  await logActivity('template', null, 'created', `Added recurring "${input.name}" ($${input.amount}, due ${input.due_day})`)
+}
+
+export async function updateTemplate(t: Template, patch: Partial<Template>): Promise<void> {
+  const { error } = await supabase.from('recurring_templates').update(patch).eq('id', t.id)
+  if (error) throw error
+  await logActivity('template', t.id, 'updated', `Updated recurring "${t.name}"`)
+}
+
+export async function deleteTemplate(t: Template): Promise<void> {
+  const { error } = await supabase.from('recurring_templates').delete().eq('id', t.id)
+  if (error) throw error
+  await logActivity('template', t.id, 'deleted', `Deleted recurring "${t.name}"`)
+}
+
+export async function setDefaultIncome(income: number): Promise<void> {
+  const { error } = await supabase.from('settings').update({ default_income: income }).eq('id', 1)
+  if (error) throw error
+  // Apply going forward: today + future scheduled blocks pick up the new default.
+  const today = new Date().toISOString().slice(0, 10)
+  await supabase.from('pay_blocks').update({ income }).eq('type', 'scheduled').gte('pay_date', today)
+  await logActivity('settings', null, 'updated', `Set default paycheck income to $${income} (applied to upcoming blocks)`)
+}
+
+// ─── Batch inserts used by auto-generation (no per-row activity log) ──────────
+export async function insertBlocks(rows: Array<Partial<PayBlock>>): Promise<PayBlock[]> {
+  if (rows.length === 0) return []
+  const { data, error } = await supabase.from('pay_blocks').insert(rows).select()
+  if (error) throw error
+  return data.map(numBlock)
+}
+
+export async function insertBills(rows: Array<Partial<Bill>>): Promise<void> {
+  if (rows.length === 0) return
+  const { error } = await supabase.from('bills').insert(rows)
+  if (error) throw error
 }
 
 // ─── Activity log (what changed, not who) ────────────────────────────────────

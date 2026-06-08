@@ -2,8 +2,11 @@ import { createClient } from '@supabase/supabase-js'
 
 // Public anon key — safe to ship to the browser. All data protection lives in
 // Supabase Row-Level Security (policies scoped by household). See CLAUDE.md.
-const url = import.meta.env.VITE_SUPABASE_URL
-const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+// Reads Vite env in the browser; falls back to process.env so the same modules
+// can run under Node (used for the generation smoke-test).
+const env = (import.meta as any).env ?? {}
+const url = env.VITE_SUPABASE_URL ?? (globalThis as any).process?.env?.VITE_SUPABASE_URL
+const anonKey = env.VITE_SUPABASE_ANON_KEY ?? (globalThis as any).process?.env?.VITE_SUPABASE_ANON_KEY
 
 if (!url || !anonKey) {
   // Fail loud and obvious — simplest thing to troubleshoot.
