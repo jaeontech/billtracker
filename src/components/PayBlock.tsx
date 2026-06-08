@@ -24,6 +24,17 @@ interface Props {
 export default function PayBlock({ block, bills, blocks, current, onCycleStatus, onMove, onSkip, onDelete, onEditAmount, onEditName, onEditDue, onToggleComplete, onHide, onAddBill }: Props) {
   const m = blockMoney(block, bills)
   const { setNodeRef, isOver } = useDroppable({ id: block.id })
+  // Collapse the bill list — a per-device view preference, persisted in localStorage.
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return localStorage.getItem(`bt:collapsed:${block.id}`) === '1' } catch { return false }
+  })
+  function toggleCollapsed() {
+    setCollapsed((v) => {
+      const nv = !v
+      try { localStorage.setItem(`bt:collapsed:${block.id}`, nv ? '1' : '0') } catch { /* ignore */ }
+      return nv
+    })
+  }
   const [adding, setAdding] = useState(false)
   const [name, setName] = useState('')
   const [amount, setAmount] = useState('')
@@ -63,10 +74,14 @@ export default function PayBlock({ block, bills, blocks, current, onCycleStatus,
       {/* Header */}
       <div className={`px-6 py-3 -mx-3.5 transition-colors ${isOver ? 'bg-accent/20' : 'bg-surface-2'}`}>
         <div className="flex justify-between items-center gap-2">
-          <div className="font-display text-xl font-medium tracking-tight flex items-center gap-2 min-w-0">
+          <button onClick={toggleCollapsed} className="flex items-center gap-2 min-w-0 text-left">
+            <span className={`text-faint text-[10px] shrink-0 transition-transform duration-150 ${collapsed ? '' : 'rotate-90'}`}>▶</span>
             {current && <span className="w-1.5 h-1.5 rounded-full bg-green shrink-0" title="current" />}
-            <span className="truncate">{block.name}</span>
-          </div>
+            <span className="font-display text-xl font-medium tracking-tight truncate">{block.name}</span>
+            {collapsed && bills.length > 0 && (
+              <span className="text-faint text-[11px] font-medium shrink-0">· {bills.length}</span>
+            )}
+          </button>
           <div className="flex items-center gap-3 shrink-0">
             <span className={`text-[9px] tracking-[0.16em] uppercase font-bold ${block.type === 'adhoc' ? 'text-accent' : 'text-faint'}`}>
               {block.type === 'adhoc' ? 'Ad-hoc' : 'Scheduled'}
@@ -99,6 +114,8 @@ export default function PayBlock({ block, bills, blocks, current, onCycleStatus,
         </div>
       </div>
 
+      {!collapsed && (
+      <>
       {/* Bills */}
       <div className="mt-3 px-4">
         {bills.length === 0 && !adding && (
@@ -141,6 +158,8 @@ export default function PayBlock({ block, bills, blocks, current, onCycleStatus,
         <button onClick={() => setAdding(true)} className="px-4 pt-3 text-muted text-[12.5px] font-semibold">
           + Add bill
         </button>
+      )}
+      </>
       )}
     </section>
   )
