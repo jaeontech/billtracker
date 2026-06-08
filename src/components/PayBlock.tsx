@@ -78,18 +78,19 @@ export default function PayBlock({ block, bills, blocks, current, onCycleStatus,
           </div>
         </div>
 
-        {/* Money — single inline row */}
-        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-0.5 mt-1.5">
-          <Fig label="Available" value={money(m.available)} />
-          <Fig label="Bills" value={money(m.billsTotal)} />
-          <Fig label="Remaining" value={moneySigned(m.remaining)} tone={m.remaining >= 0 ? 'text-green' : 'text-red'} />
+        {/* Money — supporting figures grouped left, Remaining is the headline right */}
+        <div className="flex justify-between items-end mt-2.5">
+          <div className="flex gap-5">
+            <Fig label="Available" value={money(m.available)} />
+            <Fig label="Bills" value={money(m.billsTotal)} />
+          </div>
+          <Fig label="Remaining" value={moneySigned(m.remaining)} tone={m.remaining >= 0 ? 'text-green' : 'text-red'} big />
         </div>
-        <div className="mt-1 text-[11px] text-muted font-medium">
-          <b className="text-ink font-semibold">{money(m.paid)}</b> paid
-          <span className="text-faint mx-1.5">·</span>
-          <b className="text-ink font-semibold">{money(m.sent)}</b> sent
-          <span className="text-faint mx-1.5">·</span>
-          <b className="text-ink font-semibold">{money(m.open)}</b> open
+        {/* Status breakdown — zoned off below a hairline */}
+        <div className="flex gap-4 mt-2.5 pt-2.5 border-t border-white/10 text-[10.5px] font-medium">
+          <StatusBit label="Paid" value={money(m.paid)} tone="text-green" />
+          <StatusBit label="Sent" value={money(m.sent)} tone="text-blue" />
+          <StatusBit label="Open" value={money(m.open)} tone="text-muted" />
         </div>
       </div>
 
@@ -140,11 +141,23 @@ export default function PayBlock({ block, bills, blocks, current, onCycleStatus,
   )
 }
 
-function Fig({ label, value, tone }: { label: string; value: string; tone?: string }) {
+function Fig({ label, value, tone, big }: { label: string; value: string; tone?: string; big?: boolean }) {
   return (
-    <span className="inline-flex items-baseline gap-1.5">
-      <span className="text-[9.5px] tracking-wide uppercase text-muted font-semibold">{label}</span>
-      <span className={`text-[15px] font-bold tracking-tight tabular-nums ${tone ?? ''}`}>{value}</span>
-    </span>
+    <div className={big ? 'text-right' : ''}>
+      <div className="text-[9px] tracking-[0.08em] uppercase text-muted font-semibold">{label}</div>
+      <div className={`${big ? 'text-[22px]' : 'text-[17px]'} font-bold tracking-tight tabular-nums leading-none mt-1 ${tone ?? ''}`}>
+        {value}
+      </div>
+    </div>
+  )
+}
+
+// One labeled chip in the Paid · Sent · Open breakdown row.
+function StatusBit({ label, value, tone }: { label: string; value: string; tone: string }) {
+  return (
+    <div className="flex items-baseline gap-1.5">
+      <span className="text-[9px] uppercase tracking-wide text-muted font-semibold">{label}</span>
+      <span className={`font-bold tabular-nums ${tone}`}>{value}</span>
+    </div>
   )
 }
