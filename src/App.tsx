@@ -178,7 +178,7 @@ export default function App() {
               </button>
             )}
             {showPast && pastBlocks.map((block) => (
-              <PayBlock key={block.id} block={block} bills={billsByBlock[block.id] ?? []} blocks={moveTargets} dim
+              <PayBlock key={block.id} block={block} bills={billsByBlock[block.id] ?? []} blocks={moveTargets}
                 onCycleStatus={onCycleStatus} onMove={onMove} onSkip={onSkip} onDelete={onDelete} onEditAmount={onEditAmount} onEditName={onEditName} onEditDue={onEditDue} onToggleComplete={onToggleComplete} onHide={onHide} onAddBill={onAddBill} />
             ))}
 
@@ -199,7 +199,7 @@ export default function App() {
 
             {visibleBlocks.map((block, i) => (
               <PayBlock key={block.id} block={block} bills={billsByBlock[block.id] ?? []} blocks={moveTargets}
-                current={i === 0} dim={i > 0}
+                current={i === 0}
                 onCycleStatus={onCycleStatus} onMove={onMove} onSkip={onSkip} onDelete={onDelete} onEditAmount={onEditAmount} onEditName={onEditName} onEditDue={onEditDue} onToggleComplete={onToggleComplete} onHide={onHide} onAddBill={onAddBill} />
             ))}
 

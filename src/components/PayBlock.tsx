@@ -9,7 +9,6 @@ interface Props {
   bills: Bill[]
   blocks: PayBlockT[]
   current?: boolean
-  dim?: boolean
   onCycleStatus: (bill: Bill, next: Bill['status']) => void
   onMove: (bill: Bill, toBlockId: string) => void
   onSkip: (bill: Bill, na: boolean) => void
@@ -22,7 +21,7 @@ interface Props {
   onAddBill: (blockId: string, b: { name: string; amount: number; method: 'auto' | 'manual'; due_date: string | null }) => void
 }
 
-export default function PayBlock({ block, bills, blocks, current, dim, onCycleStatus, onMove, onSkip, onDelete, onEditAmount, onEditName, onEditDue, onToggleComplete, onHide, onAddBill }: Props) {
+export default function PayBlock({ block, bills, blocks, current, onCycleStatus, onMove, onSkip, onDelete, onEditAmount, onEditName, onEditDue, onToggleComplete, onHide, onAddBill }: Props) {
   const m = blockMoney(block, bills)
   const { setNodeRef, isOver } = useDroppable({ id: block.id })
   const [adding, setAdding] = useState(false)
@@ -47,7 +46,7 @@ export default function PayBlock({ block, bills, blocks, current, dim, onCycleSt
   // Completed → collapse to a one-line summary with Reopen / Hide.
   if (block.completed) {
     return (
-      <div className={`flex items-center gap-2 py-2 px-1 mb-3 border-b border-surface text-sm ${dim ? 'opacity-60' : ''}`}>
+      <div className="flex items-center gap-2 py-2 px-1 mb-3 border-b border-surface text-sm opacity-60">
         <span className="text-green text-[13px] shrink-0">✓</span>
         <span className="font-display font-medium truncate">{block.name}</span>
         <span className="text-muted text-[11px] shrink-0">{dateLabel}</span>
@@ -62,7 +61,7 @@ export default function PayBlock({ block, bills, blocks, current, dim, onCycleSt
   }
 
   return (
-    <section ref={setNodeRef} className={`mb-14 ${dim ? 'opacity-60' : ''}`}>
+    <section ref={setNodeRef} className="mb-14">
       {/* Header */}
       <div className={`px-6 py-4 -mx-3.5 transition-colors ${isOver ? 'bg-accent/20' : 'bg-surface-2'}`}>
         <div className="flex justify-between items-baseline">
