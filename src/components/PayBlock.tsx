@@ -78,16 +78,21 @@ export default function PayBlock({ block, bills, blocks, current, onCycleStatus,
           </div>
         </div>
 
-        {/* Money — supporting figures grouped left, Remaining is the headline right */}
-        <div className="flex justify-between items-end mt-2.5">
-          <div className="flex gap-5">
-            <Fig label="Available" value={money(m.available)} />
-            <Fig label="Bills" value={money(m.billsTotal)} />
+        {/* Money — big Remaining headline anchors the row; Avail/Bills support it */}
+        <div className="flex items-baseline justify-between gap-3 mt-2">
+          <div className="flex items-baseline gap-1.5 shrink-0">
+            <span className={`text-[23px] font-bold tabular-nums tracking-tight leading-none ${m.remaining >= 0 ? 'text-green' : 'text-red'}`}>
+              {moneySigned(m.remaining)}
+            </span>
+            <span className="text-[9px] uppercase tracking-wide text-muted font-semibold">left</span>
           </div>
-          <Fig label="Remaining" value={moneySigned(m.remaining)} tone={m.remaining >= 0 ? 'text-green' : 'text-red'} big />
+          <div className="flex items-baseline gap-3.5 text-[11px]">
+            <SupFig label="Avail" value={money(m.available)} />
+            <SupFig label="Bills" value={money(m.billsTotal)} />
+          </div>
         </div>
         {/* Status breakdown — zoned off below a hairline */}
-        <div className="flex gap-4 mt-2.5 pt-2.5 border-t border-white/10 text-[10.5px] font-medium">
+        <div className="flex gap-4 mt-2 pt-2 border-t border-white/10 text-[10.5px] font-medium">
           <StatusBit label="Paid" value={money(m.paid)} tone="text-green" />
           <StatusBit label="Sent" value={money(m.sent)} tone="text-blue" />
           <StatusBit label="Open" value={money(m.open)} tone="text-muted" />
@@ -141,14 +146,13 @@ export default function PayBlock({ block, bills, blocks, current, onCycleStatus,
   )
 }
 
-function Fig({ label, value, tone, big }: { label: string; value: string; tone?: string; big?: boolean }) {
+// Small supporting figure (Avail / Bills) — label + value inline.
+function SupFig({ label, value }: { label: string; value: string }) {
   return (
-    <div className={big ? 'text-right' : ''}>
-      <div className="text-[9px] tracking-[0.08em] uppercase text-muted font-semibold">{label}</div>
-      <div className={`${big ? 'text-[22px]' : 'text-[17px]'} font-bold tracking-tight tabular-nums leading-none mt-1 ${tone ?? ''}`}>
-        {value}
-      </div>
-    </div>
+    <span className="flex items-baseline gap-1">
+      <span className="text-[9px] uppercase tracking-wide text-muted font-semibold">{label}</span>
+      <span className="text-ink font-semibold tabular-nums">{value}</span>
+    </span>
   )
 }
 
