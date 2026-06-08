@@ -46,14 +46,12 @@ export default function PayBlock({ block, bills, blocks, current, onCycleStatus,
   // Completed → collapse to a one-line summary with Reopen / Hide.
   if (block.completed) {
     return (
-      <div className="flex items-center gap-2 py-2 px-1 mb-3 border-b border-surface text-sm opacity-60">
-        <span className="text-green text-[13px] shrink-0">✓</span>
-        <span className="font-display font-medium truncate">{block.name}</span>
-        <span className="text-muted text-[11px] shrink-0">{dateLabel}</span>
+      <div className="flex items-center gap-2 py-2 px-1 mb-3 border-b border-surface text-sm opacity-45">
+        <span className="text-faint text-[13px] shrink-0">✓</span>
+        <span className="font-display font-medium truncate text-muted">{block.name}</span>
+        <span className="text-faint text-[11px] shrink-0">{dateLabel}</span>
         <span className="flex-1 min-w-2" />
-        <span className={`font-bold tabular-nums shrink-0 ${m.remaining >= 0 ? 'text-green' : 'text-red'}`}>
-          {moneySigned(m.remaining)}
-        </span>
+        <span className="font-bold tabular-nums shrink-0 text-muted">{moneySigned(m.remaining)}</span>
         <button onClick={() => onToggleComplete(block, false)} className="text-muted text-[11px] font-semibold shrink-0">Reopen</button>
         <button onClick={() => onHide(block)} className="text-faint text-[11px] font-semibold shrink-0">Hide</button>
       </div>
