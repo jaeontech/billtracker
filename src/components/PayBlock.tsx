@@ -72,10 +72,10 @@ export default function PayBlock({ block, bills, blocks, onCycleStatus, onMove, 
     <section ref={setNodeRef} className="mb-14">
       {/* Header */}
       <div className={`px-6 py-3 -mx-3.5 transition-colors ${isOver ? 'bg-accent/20' : 'bg-surface-2'}`}>
-        <div className="flex gap-2.5">
-          {/* chevron gutter */}
+        <div className="flex">
+          {/* chevron gutter — fixed 20px so content aligns with the bills below */}
           <button onClick={toggleCollapsed} aria-label="Toggle bills"
-            className={`text-faint text-[10px] shrink-0 pt-1 transition-transform duration-150 ${collapsed ? '' : 'rotate-90'}`}>
+            className={`w-5 text-center text-faint text-[10px] shrink-0 pt-1 transition-transform duration-150 ${collapsed ? '' : 'rotate-90'}`}>
             ▶
           </button>
           {/* content column — name, money, status all align here */}
@@ -123,8 +123,8 @@ export default function PayBlock({ block, bills, blocks, onCycleStatus, onMove, 
 
       {!collapsed && (
       <>
-      {/* Bills */}
-      <div className="mt-3 px-4">
+      {/* Bills — left-padded to line up under the title (header offset + chevron gutter) */}
+      <div className="mt-3 pl-[30px] pr-4">
         {bills.length === 0 && !adding && (
           <div className="text-[13px] text-faint py-2">No bills in this block yet.</div>
         )}
@@ -147,7 +147,7 @@ export default function PayBlock({ block, bills, blocks, onCycleStatus, onMove, 
 
       {/* Add bill */}
       {adding ? (
-        <div className="px-4 mt-2 flex flex-wrap items-center gap-2">
+        <div className="pl-[30px] pr-4 mt-2 flex flex-wrap items-center gap-2">
           <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Bill name"
             className="bg-surface rounded-lg px-3 py-2 text-sm outline-none flex-1 min-w-[120px]" />
           <input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" placeholder="$0"
@@ -162,7 +162,7 @@ export default function PayBlock({ block, bills, blocks, onCycleStatus, onMove, 
           <button onClick={() => setAdding(false)} className="text-muted text-sm px-2">Cancel</button>
         </div>
       ) : (
-        <button onClick={() => setAdding(true)} className="px-4 pt-3 text-muted text-[12.5px] font-semibold">
+        <button onClick={() => setAdding(true)} className="pl-[30px] pt-3 text-muted text-[12.5px] font-semibold">
           + Add bill
         </button>
       )}
