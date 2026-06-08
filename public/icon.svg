@@ -1,0 +1,14 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="0%" r="120%">
+      <stop offset="0%" stop-color="#26241c"/>
+      <stop offset="55%" stop-color="#14130f"/>
+      <stop offset="100%" stop-color="#0a0907"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <!-- a pay block: header bar + bill rows -->
+  <rect x="132" y="170" width="248" height="50" rx="25" fill="#6FBE95"/>
+  <rect x="132" y="236" width="186" height="44" rx="22" fill="#8B8576"/>
+  <rect x="132" y="298" width="222" height="44" rx="22" fill="#5C574B"/>
+</svg>
