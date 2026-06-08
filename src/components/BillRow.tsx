@@ -154,11 +154,11 @@ export default function BillRow({ bill, block, blocks, onCycleStatus, onMove, on
         </button>
       )}
       {bill.na ? (
-        <span className="text-[10.5px] font-bold tracking-wide text-faint uppercase min-w-[58px] text-right">NA</span>
+        <span className="text-[10.5px] font-bold tracking-wide text-faint uppercase min-w-[40px] text-right">NA</span>
       ) : (
         <button
           onClick={() => onCycleStatus(bill, NEXT[bill.status])}
-          className={`text-[10.5px] font-bold tracking-wide uppercase min-w-[58px] text-right ${STATUS_STYLE[bill.status]}`}
+          className={`text-[10.5px] font-bold tracking-wide uppercase min-w-[40px] text-right ${STATUS_STYLE[bill.status]}`}
         >
           {bill.status === 'upcoming' ? 'Open' : bill.status}
         </button>
