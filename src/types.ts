@@ -13,6 +13,8 @@ export interface PayBlock {
   period_start: string | null
   period_end: string | null
   income: number
+  completed: boolean
+  hidden: boolean
   created_at: string
 }
 

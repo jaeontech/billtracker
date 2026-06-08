@@ -21,6 +21,7 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showPast, setShowPast] = useState(false)
+  const [showHidden, setShowHidden] = useState(false)
   const [addingBlock, setAddingBlock] = useState(false)
   const [view, setView] = useState<'board' | 'templates'>('board')
   // 30-day guardrail: holds a pending move that would push a bill 30+ days late.
@@ -68,16 +69,22 @@ export default function App() {
     return map
   }, [bills])
 
+  // Hidden blocks are pulled out of the board entirely (restorable via a toggle).
+  const boardBlocks = useMemo(() => blocks.filter((b) => !b.hidden), [blocks])
+  const hiddenBlocks = useMemo(() => blocks.filter((b) => b.hidden), [blocks])
+  // Move targets exclude hidden and completed (collapsed) blocks.
+  const moveTargets = useMemo(() => boardBlocks.filter((b) => !b.completed), [boardBlocks])
+
   const currentIdx = useMemo(() => {
     const t = todayISO()
-    let idx = blocks.findIndex((b) => b.pay_date > t)
-    if (idx === -1) idx = blocks.length - 1
+    let idx = boardBlocks.findIndex((b) => b.pay_date > t)
+    if (idx === -1) idx = boardBlocks.length - 1
     else idx = Math.max(0, idx - 1)
     return idx
-  }, [blocks])
+  }, [boardBlocks])
 
-  const pastBlocks = blocks.slice(0, currentIdx)
-  const visibleBlocks = blocks.slice(currentIdx)
+  const pastBlocks = boardBlocks.slice(0, currentIdx)
+  const visibleBlocks = boardBlocks.slice(currentIdx)
 
   const run = (p: Promise<unknown>) => p.then(loadAll).catch((e) => setError(String(e)))
   const onCycleStatus = (bill: Bill, next: Bill['status']) => run(db.setBillStatus(bill, next))
@@ -109,6 +116,9 @@ export default function App() {
   const onEditAmount = (bill: Bill, amount: number) => run(db.setBillAmount(bill, amount))
   const onEditName = (bill: Bill, name: string) => run(db.setBillName(bill, name))
   const onEditDue = (bill: Bill, due: string | null) => run(db.setBillDue(bill, due))
+  const onToggleComplete = (block: PayBlockT, completed: boolean) => run(db.setBlockCompleted(block, completed))
+  const onHide = (block: PayBlockT) => run(db.setBlockHidden(block, true))
+  const onUnhide = (block: PayBlockT) => run(db.setBlockHidden(block, false))
 
   // Drag handlers reuse onMove → the 30-day guardrail applies to drag too.
   const onDragStart = (e: DragStartEvent) => setActiveBill((e.active.data.current?.bill as Bill) ?? null)
@@ -168,15 +178,31 @@ export default function App() {
               </button>
             )}
             {showPast && pastBlocks.map((block) => (
-              <PayBlock key={block.id} block={block} bills={billsByBlock[block.id] ?? []} blocks={blocks} dim
-                onCycleStatus={onCycleStatus} onMove={onMove} onSkip={onSkip} onDelete={onDelete} onEditAmount={onEditAmount} onEditName={onEditName} onEditDue={onEditDue} onAddBill={onAddBill} />
+              <PayBlock key={block.id} block={block} bills={billsByBlock[block.id] ?? []} blocks={moveTargets} dim
+                onCycleStatus={onCycleStatus} onMove={onMove} onSkip={onSkip} onDelete={onDelete} onEditAmount={onEditAmount} onEditName={onEditName} onEditDue={onEditDue} onToggleComplete={onToggleComplete} onHide={onHide} onAddBill={onAddBill} />
             ))}
 
             {visibleBlocks.map((block, i) => (
-              <PayBlock key={block.id} block={block} bills={billsByBlock[block.id] ?? []} blocks={blocks}
+              <PayBlock key={block.id} block={block} bills={billsByBlock[block.id] ?? []} blocks={moveTargets}
                 current={i === 0} dim={i > 0}
-                onCycleStatus={onCycleStatus} onMove={onMove} onSkip={onSkip} onDelete={onDelete} onEditAmount={onEditAmount} onEditName={onEditName} onEditDue={onEditDue} onAddBill={onAddBill} />
+                onCycleStatus={onCycleStatus} onMove={onMove} onSkip={onSkip} onDelete={onDelete} onEditAmount={onEditAmount} onEditName={onEditName} onEditDue={onEditDue} onToggleComplete={onToggleComplete} onHide={onHide} onAddBill={onAddBill} />
             ))}
+
+            {hiddenBlocks.length > 0 && (
+              <button onClick={() => setShowHidden((v) => !v)}
+                className="block w-full text-center py-2.5 text-faint text-[12.5px] font-semibold mt-2 mb-2">
+                {showHidden ? 'Hide' : 'Show'} {hiddenBlocks.length} hidden pay block{hiddenBlocks.length > 1 ? 's' : ''}
+              </button>
+            )}
+            {showHidden && hiddenBlocks.map((block) => (
+              <div key={block.id} className="flex items-center gap-2 py-2 px-1 mb-2 border-b border-surface text-sm opacity-60">
+                <span className="text-faint text-[13px] shrink-0">⦸</span>
+                <span className="font-display font-medium truncate">{block.name}</span>
+                <span className="flex-1 min-w-2" />
+                <button onClick={() => onUnhide(block)} className="text-muted text-[11px] font-semibold shrink-0">Unhide</button>
+              </div>
+            ))}
+
             <DragOverlay>
               {activeBill ? (
                 <div className="bg-surface ring-1 ring-accent/60 rounded-lg px-3 py-2 flex items-center gap-3 shadow-2xl text-sm font-semibold">

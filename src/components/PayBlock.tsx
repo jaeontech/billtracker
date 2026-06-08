@@ -17,10 +17,12 @@ interface Props {
   onEditAmount: (bill: Bill, amount: number) => void
   onEditName: (bill: Bill, name: string) => void
   onEditDue: (bill: Bill, due: string | null) => void
+  onToggleComplete: (block: PayBlockT, completed: boolean) => void
+  onHide: (block: PayBlockT) => void
   onAddBill: (blockId: string, b: { name: string; amount: number; method: 'auto' | 'manual'; due_date: string | null }) => void
 }
 
-export default function PayBlock({ block, bills, blocks, current, dim, onCycleStatus, onMove, onSkip, onDelete, onEditAmount, onEditName, onEditDue, onAddBill }: Props) {
+export default function PayBlock({ block, bills, blocks, current, dim, onCycleStatus, onMove, onSkip, onDelete, onEditAmount, onEditName, onEditDue, onToggleComplete, onHide, onAddBill }: Props) {
   const m = blockMoney(block, bills)
   const { setNodeRef, isOver } = useDroppable({ id: block.id })
   const [adding, setAdding] = useState(false)
@@ -42,6 +44,23 @@ export default function PayBlock({ block, bills, blocks, current, dim, onCycleSt
     setName(''); setAmount(''); setDue(''); setMethod('manual'); setAdding(false)
   }
 
+  // Completed → collapse to a one-line summary with Reopen / Hide.
+  if (block.completed) {
+    return (
+      <div className={`flex items-center gap-2 py-2 px-1 mb-3 border-b border-surface text-sm ${dim ? 'opacity-60' : ''}`}>
+        <span className="text-green text-[13px] shrink-0">✓</span>
+        <span className="font-display font-medium truncate">{block.name}</span>
+        <span className="text-muted text-[11px] shrink-0">{dateLabel}</span>
+        <span className="flex-1 min-w-2" />
+        <span className={`font-bold tabular-nums shrink-0 ${m.remaining >= 0 ? 'text-green' : 'text-red'}`}>
+          {moneySigned(m.remaining)}
+        </span>
+        <button onClick={() => onToggleComplete(block, false)} className="text-muted text-[11px] font-semibold shrink-0">Reopen</button>
+        <button onClick={() => onHide(block)} className="text-faint text-[11px] font-semibold shrink-0">Hide</button>
+      </div>
+    )
+  }
+
   return (
     <section ref={setNodeRef} className={`mb-14 ${dim ? 'opacity-60' : ''}`}>
       {/* Header */}
@@ -53,9 +72,15 @@ export default function PayBlock({ block, bills, blocks, current, dim, onCycleSt
               {dateLabel}{current ? ' · current' : ''}
             </div>
           </div>
-          <span className={`text-[9px] tracking-[0.16em] uppercase font-bold ${block.type === 'adhoc' ? 'text-accent' : 'text-faint'}`}>
-            {block.type === 'adhoc' ? 'Ad-hoc' : 'Scheduled'}
-          </span>
+          <div className="flex flex-col items-end gap-1.5 shrink-0">
+            <span className={`text-[9px] tracking-[0.16em] uppercase font-bold ${block.type === 'adhoc' ? 'text-accent' : 'text-faint'}`}>
+              {block.type === 'adhoc' ? 'Ad-hoc' : 'Scheduled'}
+            </span>
+            <button onClick={() => onToggleComplete(block, true)} className="flex items-center gap-1 text-[10px] font-semibold text-muted">
+              <span className="w-3.5 h-3.5 rounded-full border border-muted flex items-center justify-center text-[8px] leading-none">✓</span>
+              Done
+            </button>
+          </div>
         </div>
 
         {/* Money */}

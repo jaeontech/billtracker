@@ -111,6 +111,19 @@ export async function addBlock(input: {
   return numBlock(data)
 }
 
+export async function setBlockCompleted(block: PayBlock, completed: boolean): Promise<void> {
+  const { error } = await supabase.from('pay_blocks').update({ completed }).eq('id', block.id)
+  if (error) throw error
+  await logActivity('pay_block', block.id, completed ? 'completed' : 'updated',
+    `${completed ? 'Completed' : 'Reopened'} ${block.name}`)
+}
+
+export async function setBlockHidden(block: PayBlock, hidden: boolean): Promise<void> {
+  const { error } = await supabase.from('pay_blocks').update({ hidden }).eq('id', block.id)
+  if (error) throw error
+  await logActivity('pay_block', block.id, 'updated', `${hidden ? 'Hid' : 'Unhid'} ${block.name}`)
+}
+
 export async function updateBlockIncome(block: PayBlock, income: number): Promise<void> {
   const { error } = await supabase.from('pay_blocks').update({ income }).eq('id', block.id)
   if (error) throw error
