@@ -28,7 +28,13 @@ export async function getBlocks(): Promise<PayBlock[]> {
 }
 
 export async function getBills(): Promise<Bill[]> {
-  const { data, error } = await supabase.from('bills').select('*').order('due_date')
+  // due_date first, then created_at as a STABLE tiebreaker so same-due-date bills
+  // never reshuffle on refetch (which would jump rows mid-edit). Null due dates last.
+  const { data, error } = await supabase
+    .from('bills')
+    .select('*')
+    .order('due_date', { nullsFirst: false })
+    .order('created_at', { ascending: true })
   if (error) throw error
   return data.map(numBill)
 }
