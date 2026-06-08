@@ -3,6 +3,7 @@ import type { Bill, PayBlock as PayBlockT, Settings, Template } from './types'
 import * as db from './lib/db'
 import { supabase } from './lib/supabase'
 import { ensureSchedule } from './lib/schedule'
+import { daysLate } from './lib/money'
 import PayBlock from './components/PayBlock'
 import TemplatesView from './components/TemplatesView'
 
@@ -18,6 +19,8 @@ export default function App() {
   const [showPast, setShowPast] = useState(false)
   const [addingBlock, setAddingBlock] = useState(false)
   const [view, setView] = useState<'board' | 'templates'>('board')
+  // 30-day guardrail: holds a pending move that would push a bill 30+ days late.
+  const [guard, setGuard] = useState<{ bill: Bill; from: PayBlockT; to: PayBlockT; days: number } | null>(null)
 
   const loadAll = useCallback(async () => {
     try {
@@ -76,7 +79,15 @@ export default function App() {
   const onMove = (bill: Bill, toBlockId: string) => {
     const from = blocks.find((b) => b.id === bill.pay_block_id)
     const to = blocks.find((b) => b.id === toBlockId)
-    if (from && to) run(db.moveBill(bill, to, from))
+    if (!from || !to) return
+    // Guardrail: warn before a move that lands the bill 30+ days past due.
+    const days = daysLate(bill.due_date, to.pay_date)
+    if (days !== null && days >= 30) setGuard({ bill, from, to, days })
+    else run(db.moveBill(bill, to, from))
+  }
+  const confirmMove = () => {
+    if (guard) run(db.moveBill(guard.bill, guard.to, guard.from))
+    setGuard(null)
   }
   const onAddBill = (blockId: string, b: { name: string; amount: number; method: 'auto' | 'manual'; due_date: string | null }) =>
     run(db.addBill({ pay_block_id: blockId, ...b }))
@@ -148,6 +159,25 @@ export default function App() {
         <Tab label="Board" on={view === 'board'} onClick={() => setView('board')} />
         <Tab label="Templates" on={view === 'templates'} onClick={() => setView('templates')} />
       </nav>
+
+      {/* 30-day guardrail confirm */}
+      {guard && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/55 px-4"
+          onClick={() => setGuard(null)}>
+          <div className="w-full max-w-[400px] mb-6 sm:mb-0 rounded-2xl p-5 bg-surface ring-1 ring-red/40"
+            onClick={(e) => e.stopPropagation()}>
+            <div className="font-bold text-red text-[13px] tracking-wide">30-day guardrail</div>
+            <div className="text-[13px] text-[#d8a99f] mt-2 leading-relaxed">
+              Moving <b className="text-ink">{guard.bill.name}</b> to <b className="text-ink">{guard.to.name}</b> makes
+              it <b className="text-ink">{guard.days} days late</b> — past the line where it can hit your credit.
+            </div>
+            <div className="flex gap-7 mt-5 justify-end">
+              <button onClick={() => setGuard(null)} className="text-muted font-bold text-[13px]">Keep it here</button>
+              <button onClick={confirmMove} className="text-red font-bold text-[13px]">Move anyway</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
