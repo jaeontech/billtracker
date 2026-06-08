@@ -165,6 +165,7 @@ export default function App() {
   const onHide = (block: PayBlockT) => editBlock(block, db.setBlockHidden(block, true))
   const onUnhide = (block: PayBlockT) => editBlock(block, db.setBlockHidden(block, false))
   const onEditIncome = (block: PayBlockT, income: number) => editBlock(block, db.updateBlockIncome(block, income))
+  const onEditNote = (block: PayBlockT, note: string | null) => editBlock(block, db.setBlockNote(block, note))
 
   // Drag handlers reuse onMove → the 30-day guardrail applies to drag too.
   const onDragStart = (e: DragStartEvent) => { if (!locked) setActiveBill((e.active.data.current?.bill as Bill) ?? null) }
@@ -243,7 +244,7 @@ export default function App() {
             )}
             {showPast && pastBlocks.map((block) => (
               <PayBlock key={block.id} block={block} bills={billsByBlock[block.id] ?? []} blocks={moveTargets}
-                onCycleStatus={onCycleStatus} onMove={onMove} onSkip={onSkip} onDelete={onDelete} onEditAmount={onEditAmount} onEditName={onEditName} onEditDue={onEditDue} onToggleComplete={onToggleComplete} onHide={onHide} onAddBill={onAddBill} onEditIncome={onEditIncome} />
+                onCycleStatus={onCycleStatus} onMove={onMove} onSkip={onSkip} onDelete={onDelete} onEditAmount={onEditAmount} onEditName={onEditName} onEditDue={onEditDue} onToggleComplete={onToggleComplete} onHide={onHide} onAddBill={onAddBill} onEditIncome={onEditIncome} onEditNote={onEditNote} />
             ))}
 
             {hiddenBlocks.length > 0 && (
@@ -263,7 +264,7 @@ export default function App() {
 
             {visibleBlocks.map((block) => (
               <PayBlock key={block.id} block={block} bills={billsByBlock[block.id] ?? []} blocks={moveTargets}
-                onCycleStatus={onCycleStatus} onMove={onMove} onSkip={onSkip} onDelete={onDelete} onEditAmount={onEditAmount} onEditName={onEditName} onEditDue={onEditDue} onToggleComplete={onToggleComplete} onHide={onHide} onAddBill={onAddBill} onEditIncome={onEditIncome} />
+                onCycleStatus={onCycleStatus} onMove={onMove} onSkip={onSkip} onDelete={onDelete} onEditAmount={onEditAmount} onEditName={onEditName} onEditDue={onEditDue} onToggleComplete={onToggleComplete} onHide={onHide} onAddBill={onAddBill} onEditIncome={onEditIncome} onEditNote={onEditNote} />
             ))}
 
             <DragOverlay>

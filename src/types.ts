@@ -15,6 +15,7 @@ export interface PayBlock {
   income: number
   completed: boolean
   hidden: boolean
+  note: string | null
   created_at: string
 }
 

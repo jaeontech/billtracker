@@ -19,10 +19,11 @@ interface Props {
   onToggleComplete: (block: PayBlockT, completed: boolean) => void
   onHide: (block: PayBlockT) => void
   onEditIncome: (block: PayBlockT, income: number) => void
+  onEditNote: (block: PayBlockT, note: string | null) => void
   onAddBill: (blockId: string, b: { name: string; amount: number; method: 'auto' | 'manual'; due_date: string | null }) => void
 }
 
-export default function PayBlock({ block, bills, blocks, onCycleStatus, onMove, onSkip, onDelete, onEditAmount, onEditName, onEditDue, onToggleComplete, onHide, onEditIncome, onAddBill }: Props) {
+export default function PayBlock({ block, bills, blocks, onCycleStatus, onMove, onSkip, onDelete, onEditAmount, onEditName, onEditDue, onToggleComplete, onHide, onEditIncome, onEditNote, onAddBill }: Props) {
   const m = blockMoney(block, bills)
   const { setNodeRef, isOver } = useDroppable({ id: block.id })
   const locked = useLocked()
@@ -44,6 +45,13 @@ export default function PayBlock({ block, bills, blocks, onCycleStatus, onMove, 
     setEditingIncome(false)
     const n = Number(incomeVal)
     if (!Number.isNaN(n) && n !== block.income) onEditIncome(block, n)
+  }
+  const [editingNote, setEditingNote] = useState(false)
+  const [noteVal, setNoteVal] = useState(block.note ?? '')
+  function commitNote() {
+    setEditingNote(false)
+    const v = noteVal.trim()
+    if (v !== (block.note ?? '')) onEditNote(block, v || null)
   }
   const [name, setName] = useState('')
   const [amount, setAmount] = useState('')
@@ -147,6 +155,27 @@ export default function PayBlock({ block, bills, blocks, onCycleStatus, onMove, 
               <StatusBit label="Sent" value={money(m.sent)} tone="text-blue" />
               <StatusBit label="Open" value={money(m.open)} tone="text-muted" />
             </div>
+
+            {/* Note / comment */}
+            {(block.note || editingNote || !locked) && (
+              <div className="mt-2">
+                {editingNote ? (
+                  <textarea autoFocus value={noteVal} onChange={(e) => setNoteVal(e.target.value)} onBlur={commitNote}
+                    onKeyDown={(e) => { if (e.key === 'Escape') { setNoteVal(block.note ?? ''); setEditingNote(false) } }}
+                    rows={2} placeholder="Add a note…"
+                    className="w-full bg-bg rounded-lg px-2.5 py-1.5 text-[12px] text-ink outline-none ring-1 ring-accent/40 resize-none" />
+                ) : block.note ? (
+                  <button disabled={locked} onClick={() => { setNoteVal(block.note ?? ''); setEditingNote(true) }}
+                    className="text-left text-[12px] text-muted italic leading-snug whitespace-pre-wrap">
+                    💬 {block.note}
+                  </button>
+                ) : (
+                  <button onClick={() => { setNoteVal(''); setEditingNote(true) }} className="text-faint text-[11.5px] font-medium">
+                    + note
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

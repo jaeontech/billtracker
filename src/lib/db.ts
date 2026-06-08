@@ -130,6 +130,12 @@ export async function setBlockHidden(block: PayBlock, hidden: boolean): Promise<
   await logActivity('pay_block', block.id, 'updated', `${hidden ? 'Hid' : 'Unhid'} ${block.name}`)
 }
 
+export async function setBlockNote(block: PayBlock, note: string | null): Promise<void> {
+  const { error } = await supabase.from('pay_blocks').update({ note }).eq('id', block.id)
+  if (error) throw error
+  await logActivity('pay_block', block.id, 'updated', `${note ? 'Noted on' : 'Cleared note on'} ${block.name}`)
+}
+
 export async function updateBlockIncome(block: PayBlock, income: number): Promise<void> {
   const { error } = await supabase.from('pay_blocks').update({ income }).eq('id', block.id)
   if (error) throw error
@@ -236,7 +242,7 @@ export async function reinsertBill(b: Bill): Promise<void> {
 // Restore a pay block's mutable fields (undo complete/hide/income).
 export async function restoreBlock(b: PayBlock): Promise<void> {
   const { error } = await supabase.from('pay_blocks').update({
-    completed: b.completed, hidden: b.hidden, income: b.income, name: b.name,
+    completed: b.completed, hidden: b.hidden, income: b.income, name: b.name, note: b.note,
   }).eq('id', b.id)
   if (error) throw error
 }
