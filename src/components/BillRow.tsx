@@ -122,8 +122,11 @@ export default function BillRow({ bill, block, blocks, onCycleStatus, onMove, on
           {dueLabel}
         </button>
       )}
-      <span className={`text-[9px] tracking-wide font-semibold uppercase shrink-0 min-w-[40px] text-right ${bill.method === 'auto' ? 'text-blue' : 'text-faint'}`}>
-        {bill.method}
+      <span
+        title={bill.method}
+        className={`text-[11px] font-bold shrink-0 w-3.5 text-center ${bill.method === 'auto' ? 'text-blue' : 'text-faint'}`}
+      >
+        {bill.method === 'auto' ? 'A' : 'M'}
       </span>
       {editingAmt ? (
         <input
