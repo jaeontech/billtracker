@@ -9,6 +9,7 @@ interface Props {
   block: PayBlockT
   bills: Bill[]
   blocks: PayBlockT[]
+  star?: boolean // 3 Fridays + 3 Household bills in this block
   onCycleStatus: (bill: Bill, next: Bill['status']) => void
   onMove: (bill: Bill, toBlockId: string) => void
   onSkip: (bill: Bill, na: boolean) => void
@@ -23,7 +24,7 @@ interface Props {
   onAddBill: (blockId: string, b: { name: string; amount: number; method: 'auto' | 'manual'; due_date: string | null }) => void
 }
 
-export default function PayBlock({ block, bills, blocks, onCycleStatus, onMove, onSkip, onDelete, onEditAmount, onEditName, onEditDue, onToggleComplete, onHide, onEditIncome, onEditNote, onAddBill }: Props) {
+export default function PayBlock({ block, bills, blocks, star, onCycleStatus, onMove, onSkip, onDelete, onEditAmount, onEditName, onEditDue, onToggleComplete, onHide, onEditIncome, onEditNote, onAddBill }: Props) {
   const m = blockMoney(block, bills)
   const { setNodeRef, isOver } = useDroppable({ id: block.id })
   const locked = useLocked()
@@ -105,6 +106,7 @@ export default function PayBlock({ block, bills, blocks, onCycleStatus, onMove, 
             <div className="flex justify-between items-center gap-2">
               <button onClick={toggleCollapsed} className="flex items-baseline gap-2 min-w-0 text-left">
                 <span className="font-display text-xl font-medium tracking-tight truncate">{block.name}</span>
+                {star && <span className="text-gold text-base shrink-0" title="3 Fridays — 3 Household bills">★</span>}
                 {collapsed && bills.length > 0 && (
                   <span className="text-faint text-[11px] font-medium shrink-0">· {bills.length}</span>
                 )}

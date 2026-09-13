@@ -125,6 +125,14 @@ export function billsForBlock(blk: PayBlock, t: Template): Array<Partial<Bill>> 
   }))
 }
 
+// Star on the block title: a weekly template lands 3 times in this block (e.g. 3
+// Fridays) AND 3 of its bills are still here, not moved out or skipped (NA).
+export function hasTripleWeekly(blk: PayBlock, bills: Bill[], templates: Template[]): boolean {
+  return templates.some((t) => t.weekday !== null
+    && weekdaysForBlock(blk.pay_date, t.weekday).length === 3
+    && bills.filter((b) => b.template_id === t.id && !b.na).length === 3)
+}
+
 /**
  * Ensure scheduled blocks (current + 3 months) exist, and seed home bills ONLY
  * into blocks that were just created. Existing blocks are owned by the user —

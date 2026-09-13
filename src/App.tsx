@@ -6,7 +6,7 @@ import {
 import type { Bill, PayBlock as PayBlockT, Settings, Template } from './types'
 import * as db from './lib/db'
 import { supabase } from './lib/supabase'
-import { ensureSchedule, findHomeBlock } from './lib/schedule'
+import { ensureSchedule, findHomeBlock, hasTripleWeekly } from './lib/schedule'
 import { daysLate, money } from './lib/money'
 import { LockContext } from './lib/lock'
 import PayBlock from './components/PayBlock'
@@ -244,6 +244,7 @@ export default function App() {
             )}
             {showPast && pastBlocks.map((block) => (
               <PayBlock key={block.id} block={block} bills={billsByBlock[block.id] ?? []} blocks={moveTargets}
+                star={hasTripleWeekly(block, billsByBlock[block.id] ?? [], templates)}
                 onCycleStatus={onCycleStatus} onMove={onMove} onSkip={onSkip} onDelete={onDelete} onEditAmount={onEditAmount} onEditName={onEditName} onEditDue={onEditDue} onToggleComplete={onToggleComplete} onHide={onHide} onAddBill={onAddBill} onEditIncome={onEditIncome} onEditNote={onEditNote} />
             ))}
 
@@ -264,6 +265,7 @@ export default function App() {
 
             {visibleBlocks.map((block) => (
               <PayBlock key={block.id} block={block} bills={billsByBlock[block.id] ?? []} blocks={moveTargets}
+                star={hasTripleWeekly(block, billsByBlock[block.id] ?? [], templates)}
                 onCycleStatus={onCycleStatus} onMove={onMove} onSkip={onSkip} onDelete={onDelete} onEditAmount={onEditAmount} onEditName={onEditName} onEditDue={onEditDue} onToggleComplete={onToggleComplete} onHide={onHide} onAddBill={onAddBill} onEditIncome={onEditIncome} onEditNote={onEditNote} />
             ))}
 

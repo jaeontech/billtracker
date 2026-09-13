@@ -3,14 +3,14 @@
 // the 3-Friday and February edge cases. Exits non-zero on any failure.
 import { readFileSync } from 'node:fs'
 import ws from 'ws'
-import type { PayBlock, Template } from '../src/types.ts'
+import type { Bill, PayBlock, Template } from '../src/types.ts'
 ;(globalThis as any).WebSocket = ws // realtime needs a WS ctor under Node 20
 for (const line of readFileSync(new URL('../.env.local', import.meta.url), 'utf8').split('\n')) {
   const m = line.match(/^([A-Z_]+)=(.*)$/)
   if (m) process.env[m[1]] = m[2]
 }
 
-const { billsForBlock } = await import('../src/lib/schedule.ts')
+const { billsForBlock, hasTripleWeekly } = await import('../src/lib/schedule.ts')
 
 const block = (pay_date: string) => ({ id: pay_date, name: pay_date, type: 'scheduled', pay_date }) as PayBlock
 const tpl = (p: Partial<Template>) =>
@@ -34,6 +34,19 @@ for (const [pay, t, want] of cases) {
   const ok = JSON.stringify(got) === JSON.stringify(want)
   if (!ok) fail++
   console.log(ok ? 'PASS' : 'FAIL', pay, JSON.stringify(t), '→', got.join(', ') || '(none)', ok ? '' : `  want ${want.join(', ')}`)
+}
+
+// Star rule: 3 Fridays in the block AND 3 non-skipped Household bills in it.
+const hhBill = (na = false) => ({ template_id: 't', na }) as Bill
+const starCases: Array<[string, Bill[], boolean]> = [
+  ['2026-10-31', [hhBill(), hhBill(), hhBill()], true],
+  ['2026-10-31', [hhBill(), hhBill(), hhBill(true)], false], // one skipped (NA)
+  ['2026-09-15', [hhBill(), hhBill(), hhBill()], false], // only 2 Fridays (one moved in)
+]
+for (const [pay, bills, want] of starCases) {
+  const got = hasTripleWeekly(block(pay), bills, [tpl(fri)])
+  if (got !== want) fail++
+  console.log(got === want ? 'PASS' : 'FAIL', 'star', pay, `${bills.filter((b) => !b.na).length} bills →`, got)
 }
 
 const name = billsForBlock(block('2026-09-15'), tpl(fri))[0]?.name
