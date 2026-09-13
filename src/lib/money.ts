@@ -8,6 +8,7 @@ export interface BlockMoney {
   paid: number
   sent: number
   open: number
+  uncleared: number // sent + open — committed but not yet cleared
 }
 
 // NA bills are excluded from every total.
@@ -16,13 +17,16 @@ export function blockMoney(block: PayBlock, bills: Bill[]): BlockMoney {
   const sum = (list: Bill[]) => list.reduce((t, b) => t + b.amount, 0)
 
   const billsTotal = sum(active)
+  const sent = sum(active.filter((b) => b.status === 'sent'))
+  const open = sum(active.filter((b) => b.status === 'upcoming'))
   return {
     available: block.income,
     billsTotal,
     remaining: block.income - billsTotal,
     paid: sum(active.filter((b) => b.status === 'paid')),
-    sent: sum(active.filter((b) => b.status === 'sent')),
-    open: sum(active.filter((b) => b.status === 'upcoming')),
+    sent,
+    open,
+    uncleared: sent + open,
   }
 }
 

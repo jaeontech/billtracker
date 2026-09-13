@@ -143,17 +143,25 @@ export default function PayBlock({ block, bills, blocks, onCycleStatus, onMove, 
                   <button disabled={locked} onClick={() => { setIncomeVal(String(block.income)); setEditingIncome(true) }}
                     className="flex items-baseline gap-1">
                     <span className="text-[9px] uppercase tracking-wide text-muted font-semibold">Avail</span>
-                    <span className="text-ink font-semibold tabular-nums">{money(m.available)}</span>
+                    {/* dotted underline + ✎ when unlocked, so it reads as tappable */}
+                    <span className={`text-ink font-semibold tabular-nums ${locked ? '' : 'underline decoration-dotted decoration-muted underline-offset-2'}`}>
+                      {money(m.available)}
+                    </span>
+                    {!locked && <span className="text-faint text-[10px]">✎</span>}
                   </button>
                 )}
                 <SupFig label="Bills" value={money(m.billsTotal)} />
               </div>
             </div>
             {/* Status breakdown — zoned off below a hairline */}
-            <div className="flex gap-4 mt-2 pt-2 border-t border-white/10 text-[10.5px] font-medium">
+            <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 pt-2 border-t border-white/10 text-[10.5px] font-medium">
               <StatusBit label="Paid" value={money(m.paid)} tone="text-green" />
               <StatusBit label="Sent" value={money(m.sent)} tone="text-blue" />
               <StatusBit label="Open" value={money(m.open)} tone="text-muted" />
+              {/* Uncleared = Sent + Open — pushed to the right edge */}
+              <div className="ml-auto">
+                <StatusBit label="Uncleared" value={money(m.uncleared)} tone="text-ink" />
+              </div>
             </div>
 
             {/* Note / comment */}

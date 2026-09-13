@@ -68,12 +68,16 @@ export async function deleteTemplate(t: Template): Promise<void> {
 }
 
 export async function setDefaultIncome(income: number): Promise<void> {
+  const { default_income: old } = await getSettings()
   const { error } = await supabase.from('settings').update({ default_income: income }).eq('id', 1)
   if (error) throw error
-  // Apply going forward: today + future scheduled blocks pick up the new default.
+  // Apply going forward — but only to upcoming scheduled blocks still at the OLD
+  // default. A paycheck whose Avail was changed on the board keeps that number.
   const today = new Date().toISOString().slice(0, 10)
-  await supabase.from('pay_blocks').update({ income }).eq('type', 'scheduled').gte('pay_date', today)
-  await logActivity('settings', null, 'updated', `Set default paycheck income to $${income} (applied to upcoming blocks)`)
+  await supabase.from('pay_blocks').update({ income })
+    .eq('type', 'scheduled').eq('income', old).gte('pay_date', today)
+  await logActivity('settings', null, 'updated',
+    `Set default paycheck income to $${income} (applied to upcoming blocks still at $${old})`)
 }
 
 // ─── Batch inserts used by auto-generation (no per-row activity log) ──────────

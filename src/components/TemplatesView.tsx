@@ -34,7 +34,7 @@ export default function TemplatesView({ templates, settings, onAdd, onUpdate, on
           <input value={income} onChange={(e) => setIncome(e.target.value)} inputMode="decimal"
             onBlur={() => onSetDefaultIncome(Number(income) || 0)}
             className="bg-bg rounded-lg px-3 py-2 text-lg font-bold tabular-nums outline-none w-32" />
-          <span className="text-muted text-xs">seeds each scheduled block · applies to upcoming blocks</span>
+          <span className="text-muted text-xs">seeds each scheduled block · updates upcoming ones you haven't changed</span>
         </div>
       </div>
 
