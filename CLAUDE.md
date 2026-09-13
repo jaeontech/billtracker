@@ -28,3 +28,10 @@ User has explicitly said security/authorization is a non-concern here (no real a
 - Bills have a **home block** derived from due day; new pay blocks auto-generate (current + next 3 months) pre-filled with their home bills.
 - Moving a bill is **per-occurrence** — snaps back to home next month.
 - A bill can only be moved, paid, or skipped (NA) — never silently deleted. Per-block math only; no global balance in v1.
+- **Weekly templates** (`recurring_templates.weekday` set; `due_day` null) seed one `<name> MM/DD` bill per matching weekday, homed by the same rule. "Household" = $600 every Friday.
+
+## Workflow
+
+- **DB changes:** add a file to `supabase/migrations/`, then apply it with the **Supabase MCP `apply_migration`** (project `kmyfecloewhnelwahiiz`); verify with `execute_sql`. The repo is not `supabase link`ed. **Never `supabase db push`**: the DB is shared with MentoMesh.
+- **Deploy:** push to `main`. Vercel's git integration auto-deploys production (`mentormesh/bill-tracker` → bills.jaeontech.com). Don't also run `vercel --prod`; that just builds a duplicate.
+- **Scripts:** `npx tsx scripts/<name>.mts` (they load `.env.local`). `smoke-weekly` is pure (no writes). `backfill-weekly` is a one-time fill (dry run by default, `--apply` to insert). The other `smoke-*` scripts write temp rows to the live DB.
