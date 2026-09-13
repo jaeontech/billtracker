@@ -3,6 +3,8 @@ import type { Settings, Template } from '../types'
 import { money } from '../lib/money'
 import { useLocked } from '../lib/lock'
 
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
 interface Props {
   templates: Template[]
   settings: Settings
@@ -14,7 +16,9 @@ interface Props {
 
 export default function TemplatesView({ templates, settings, onAdd, onUpdate, onDelete, onSetDefaultIncome }: Props) {
   const [income, setIncome] = useState(String(settings.default_income))
-  const total = templates.filter((t) => t.active).reduce((s, t) => s + t.amount, 0)
+  // Weekly templates (e.g. Household every Friday) land ~52/12 times a month.
+  const total = templates.filter((t) => t.active)
+    .reduce((s, t) => s + (t.weekday !== null ? (t.amount * 52) / 12 : t.amount), 0)
   const locked = useLocked()
 
   return (
@@ -40,6 +44,7 @@ export default function TemplatesView({ templates, settings, onAdd, onUpdate, on
       </div>
       <p className="text-faint text-[12px] px-1 mb-3 leading-relaxed">
         These seed into every pay block automatically. Due day decides which paycheck (15th or end-of-month) is its home.
+        Weekly bills (like Household) add one bill per Friday, named with its date.
       </p>
 
       {templates.map((t) => (
@@ -55,7 +60,7 @@ export default function TemplatesView({ templates, settings, onAdd, onUpdate, on
 function TemplateRow({ t, onUpdate, onDelete }: { t: Template; onUpdate: Props['onUpdate']; onDelete: Props['onDelete'] }) {
   const [name, setName] = useState(t.name)
   const [amount, setAmount] = useState(String(t.amount))
-  const [day, setDay] = useState(String(t.due_day))
+  const [day, setDay] = useState(String(t.due_day ?? ''))
 
   const save = (patch: Partial<Template>) => onUpdate(t, patch)
 
@@ -68,12 +73,16 @@ function TemplateRow({ t, onUpdate, onDelete }: { t: Template; onUpdate: Props['
         className="bg-transparent text-sm font-bold tabular-nums outline-none w-16 text-right" />
       <button onClick={() => save({ method: t.method === 'manual' ? 'auto' : 'manual' })}
         className="text-[9px] uppercase tracking-wide font-semibold text-faint w-12 text-center">{t.method}</button>
-      <div className="flex items-center gap-0.5 text-muted">
-        <span className="text-[10px]">due</span>
-        <input value={day} onChange={(e) => setDay(e.target.value)} inputMode="numeric"
-          onBlur={() => Number(day) !== t.due_day && save({ due_day: Math.min(31, Math.max(1, Number(day) || 1)) })}
-          className="bg-transparent text-sm font-medium outline-none w-7 text-center tabular-nums" />
-      </div>
+      {t.weekday !== null ? (
+        <span className="text-muted text-[10px] whitespace-nowrap">every {WEEKDAYS[t.weekday]}</span>
+      ) : (
+        <div className="flex items-center gap-0.5 text-muted">
+          <span className="text-[10px]">due</span>
+          <input value={day} onChange={(e) => setDay(e.target.value)} inputMode="numeric"
+            onBlur={() => Number(day) !== t.due_day && save({ due_day: Math.min(31, Math.max(1, Number(day) || 1)) })}
+            className="bg-transparent text-sm font-medium outline-none w-7 text-center tabular-nums" />
+        </div>
+      )}
       <button onClick={() => save({ active: !t.active })} title={t.active ? 'Active' : 'Paused'}
         className={`w-2.5 h-2.5 rounded-full ${t.active ? 'bg-green' : 'bg-faint'}`} />
       <button onClick={() => onDelete(t)} className="text-faint text-base px-1">×</button>

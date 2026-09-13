@@ -42,7 +42,8 @@ export interface Template {
   name: string
   amount: number
   method: Method
-  due_day: number // 1–31; drives the "home" block
+  due_day: number | null // 1–31 for monthly (drives the "home" block); null for weekly
+  weekday: number | null // 0–6 (5 = Fri) → weekly, one bill per matching day; null → monthly
   active: boolean
   created_at: string
 }

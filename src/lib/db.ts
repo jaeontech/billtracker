@@ -11,7 +11,8 @@ function numBill(r: any): Bill {
   return { ...r, amount: Number(r.amount) }
 }
 function numTemplate(r: any): Template {
-  return { ...r, amount: Number(r.amount) }
+  // weekday ?? null: a DB without the weekly-templates column still reads as monthly.
+  return { ...r, amount: Number(r.amount), weekday: r.weekday ?? null }
 }
 
 // ─── Reads ───────────────────────────────────────────────────────────────────

@@ -86,6 +86,45 @@ function dueForBlock(payDateISO: string, dueDay: number): string | null {
   return null
 }
 
+// For a scheduled block's payday, every date on `weekday` (0=Sun…5=Fri) whose
+// home is this block — so weekly bills follow the same home rule as monthly ones.
+// A block covers from 1 day BEFORE its payday (the 30th homes to a 31st EOM) to
+// at most ~16 days after (EOM → the 14th of next month), so scan -1..16.
+function weekdaysForBlock(payDateISO: string, weekday: number): string[] {
+  const [y, m, d] = payDateISO.split('-').map(Number)
+  const out: string[] = []
+  for (let i = -1; i <= 16; i++) {
+    const dt = new Date(y, m - 1, d + i)
+    const dISO = iso(dt.getFullYear(), dt.getMonth(), dt.getDate())
+    if (dt.getDay() === weekday && homePayDate(dISO) === payDateISO) out.push(dISO)
+  }
+  return out
+}
+
+const mmdd = (isoDate: string) => `${isoDate.slice(5, 7)}/${isoDate.slice(8, 10)}`
+
+// The bills one template seeds into one scheduled block. Monthly → at most one,
+// plain name. Weekly → one per matching weekday, named with its date
+// (e.g. "Household 09/18"). Shared by generation and scripts/backfill-weekly.mts.
+export function billsForBlock(blk: PayBlock, t: Template): Array<Partial<Bill>> {
+  if (!t.active) return []
+  let dues: string[] = []
+  if (t.weekday !== null) dues = weekdaysForBlock(blk.pay_date, t.weekday)
+  else if (t.due_day !== null) {
+    const due = dueForBlock(blk.pay_date, t.due_day)
+    if (due) dues = [due]
+  }
+  return dues.map((dueISO) => ({
+    pay_block_id: blk.id,
+    template_id: t.id,
+    name: t.weekday !== null ? `${t.name} ${mmdd(dueISO)}` : t.name,
+    amount: t.amount,
+    method: t.method,
+    due_date: dueISO,
+    status: 'upcoming' as const,
+  }))
+}
+
 /**
  * Ensure scheduled blocks (current + 3 months) exist, and seed home bills ONLY
  * into blocks that were just created. Existing blocks are owned by the user —
@@ -109,23 +148,7 @@ export async function ensureSchedule(
   const created = await db.insertBlocks(blocksToCreate)
 
   // Seed each NEW block with the recurring bills whose home it is.
-  const billsToCreate: Array<Partial<Bill>> = []
-  for (const blk of created) {
-    for (const t of templates) {
-      if (!t.active) continue
-      const dueISO = dueForBlock(blk.pay_date, t.due_day)
-      if (!dueISO) continue
-      billsToCreate.push({
-        pay_block_id: blk.id,
-        template_id: t.id,
-        name: t.name,
-        amount: t.amount,
-        method: t.method,
-        due_date: dueISO,
-        status: 'upcoming',
-      })
-    }
-  }
+  const billsToCreate = created.flatMap((blk) => templates.flatMap((t) => billsForBlock(blk, t)))
   await db.insertBills(billsToCreate)
 
   return { blocksCreated: created.length, billsCreated: billsToCreate.length }
