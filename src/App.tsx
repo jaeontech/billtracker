@@ -180,7 +180,7 @@ export default function App() {
   return (
     <LockContext.Provider value={locked}>
     <div className="min-h-dvh flex justify-center">
-      <div className="w-full max-w-[460px] px-3.5 pb-28">
+      <div className="w-full max-w-[460px] px-3.5 pb-[calc(96px+env(safe-area-inset-bottom))]">
         <header className="pt-12 pb-3 flex justify-between items-end">
           <div>
             <div className="text-[10.5px] tracking-[0.18em] uppercase text-muted font-semibold">
@@ -281,8 +281,9 @@ export default function App() {
         )}
       </div>
 
-      {/* Bottom nav */}
-      <nav className="fixed bottom-0 inset-x-0 h-[68px] bg-gradient-to-b from-transparent to-bg flex items-end justify-center gap-12 pb-4 pointer-events-none">
+      {/* Bottom nav — a solid bar (not a fade) so the page never shows through it or
+          steals its taps; padded past the iPhone home indicator. */}
+      <nav className="fixed bottom-0 inset-x-0 z-40 bg-bg border-t border-surface flex justify-center gap-4 pb-[env(safe-area-inset-bottom)]">
         <Tab label="Board" on={view === 'board'} onClick={() => setView('board')} />
         <Tab label="Templates" on={view === 'templates'} onClick={() => setView('templates')} />
       </nav>
@@ -313,7 +314,7 @@ export default function App() {
 function Tab({ label, on, onClick }: { label: string; on: boolean; onClick: () => void }) {
   return (
     <button onClick={onClick}
-      className={`pointer-events-auto text-[12px] font-semibold ${on ? 'text-ink' : 'text-faint'}`}>
+      className={`h-14 px-8 text-[12px] font-semibold ${on ? 'text-ink' : 'text-faint'}`}>
       {label}
     </button>
   )
