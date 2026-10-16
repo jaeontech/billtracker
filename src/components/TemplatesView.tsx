@@ -16,9 +16,11 @@ interface Props {
 
 export default function TemplatesView({ templates, settings, onAdd, onUpdate, onDelete, onSetDefaultIncome }: Props) {
   const [income, setIncome] = useState(String(settings.default_income))
-  // Weekly templates (e.g. Household every Friday) land ~52/12 times a month.
-  const total = templates.filter((t) => t.active)
-    .reduce((s, t) => s + (t.weekday !== null ? (t.amount * 52) / 12 : t.amount), 0)
+  // Weekly templates (e.g. Household every Friday) vary with the number of Fridays in a
+  // month, so the header totals only the monthly bills and names what it leaves out.
+  const active = templates.filter((t) => t.active)
+  const total = active.filter((t) => t.weekday === null).reduce((s, t) => s + t.amount, 0)
+  const weekly = active.filter((t) => t.weekday !== null).map((t) => t.name)
   const locked = useLocked()
 
   return (
@@ -40,8 +42,11 @@ export default function TemplatesView({ templates, settings, onAdd, onUpdate, on
 
       <div className="flex items-baseline justify-between px-1 mb-2">
         <h2 className="font-display text-xl font-medium">Recurring bills</h2>
-        <span className="text-muted text-xs font-medium">{money(total)} / month·ish</span>
+        <span className="text-muted text-xs font-medium">{money(total)} / month</span>
       </div>
+      <p className="text-faint text-[12px] px-1 mb-2 text-right">
+        Bills only{weekly.length > 0 && ` · excludes ${weekly.join(', ')}`}
+      </p>
       <p className="text-faint text-[12px] px-1 mb-3 leading-relaxed">
         These seed into every pay block automatically. Due day decides which paycheck (15th or end-of-month) is its home.
         Weekly bills (like Household) add one bill per Friday, named with its date.
