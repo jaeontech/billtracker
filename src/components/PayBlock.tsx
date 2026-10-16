@@ -133,8 +133,12 @@ export default function PayBlock({ block, bills, blocks, star, onCycleStatus, on
               </button>
               <div className="flex items-center gap-3 shrink-0">
                 {!collapsed && bills.length > 1 && (
-                  <button onClick={sortByDate} title="Sort bills by due date" className="text-[10px] font-semibold text-muted">
-                    ↕ Date
+                  <button onClick={sortByDate} title="Sort bills by due date" className="flex items-center gap-1 text-[10px] font-semibold text-muted">
+                    {/* Inline SVG, not "↕": iOS draws that character as an emoji bubble. */}
+                    <svg viewBox="0 0 12 12" className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M4 10V2M2 4l2-2 2 2M8 2v8M6 8l2 2 2-2" />
+                    </svg>
+                    Date
                   </button>
                 )}
                 <span className={`text-[9px] tracking-[0.16em] uppercase font-bold ${block.type === 'adhoc' ? 'text-accent' : 'text-faint'}`}>
