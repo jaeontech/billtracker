@@ -21,6 +21,9 @@ export default function TemplatesView({ templates, settings, onAdd, onUpdate, on
   const active = templates.filter((t) => t.active)
   const total = active.filter((t) => t.weekday === null).reduce((s, t) => s + t.amount, 0)
   const weekly = active.filter((t) => t.weekday !== null).map((t) => t.name)
+  // Two paychecks a month (15th + end of month); what's left covers the weekly bills.
+  const monthlyIncome = (Number(income) || 0) * 2
+  const left = monthlyIncome - total
   const locked = useLocked()
 
   return (
@@ -40,13 +43,23 @@ export default function TemplatesView({ templates, settings, onAdd, onUpdate, on
         </div>
       </div>
 
-      <div className="flex items-baseline justify-between px-1 mb-2">
-        <h2 className="font-display text-xl font-medium">Recurring bills</h2>
-        <span className="text-muted text-xs font-medium">{money(total)} / month</span>
+      <h2 className="font-display text-xl font-medium px-1 mb-2">Recurring bills</h2>
+      <div className="px-1 mb-3 text-xs tabular-nums space-y-1">
+        <div className="flex items-baseline justify-between">
+          <span className="text-muted">Monthly income <span className="text-faint">· 2 × paycheck</span></span>
+          <span className="font-medium">{money(monthlyIncome)}</span>
+        </div>
+        <div className="flex items-baseline justify-between">
+          <span className="text-muted">
+            Monthly bills <span className="text-faint">· bills only{weekly.length > 0 && `, excludes ${weekly.join(', ')}`}</span>
+          </span>
+          <span className="font-medium">−{money(total)}</span>
+        </div>
+        <div className="flex items-baseline justify-between pt-1 border-t border-surface">
+          <span className="text-muted">Left for weekly bills{weekly.length > 0 && ` (${weekly.join(', ')})`}</span>
+          <span className={`font-semibold ${left < 0 ? 'text-red' : ''}`}>{money(left)}</span>
+        </div>
       </div>
-      <p className="text-faint text-[12px] px-1 mb-2 text-right">
-        Bills only{weekly.length > 0 && ` · excludes ${weekly.join(', ')}`}
-      </p>
       <p className="text-faint text-[12px] px-1 mb-3 leading-relaxed">
         These seed into every pay block automatically. Due day decides which paycheck (15th or end-of-month) is its home.
         Weekly bills (like Household) add one bill per Friday, named with its date.
