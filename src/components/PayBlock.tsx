@@ -24,8 +24,28 @@ interface Props {
   onAddBill: (blockId: string, b: { name: string; amount: number; method: 'auto' | 'manual'; due_date: string | null }) => void
 }
 
+// Due date first (no date last), then name — a deterministic order, so ties never shuffle.
+function byDate(a: Bill, b: Bill): number {
+  if (a.due_date !== b.due_date) {
+    if (a.due_date === null) return 1
+    if (b.due_date === null) return -1
+    return a.due_date < b.due_date ? -1 : 1
+  }
+  return a.name.localeCompare(b.name)
+}
+
 export default function PayBlock({ block, bills, blocks, star, onCycleStatus, onMove, onSkip, onDelete, onEditAmount, onEditName, onEditDue, onToggleComplete, onHide, onEditIncome, onEditNote, onAddBill }: Props) {
   const m = blockMoney(block, bills)
+  // Rows are sorted by date once, then hold their place: editing a bill never reorders
+  // the list. Bills that arrive later (added, moved in) go to the bottom until "Sort".
+  const [order, setOrder] = useState(() => [...bills].sort(byDate).map((b) => b.id))
+  const byId = new Map(bills.map((b) => [b.id, b]))
+  const known = new Set(order)
+  const rows = [
+    ...order.flatMap((id) => byId.get(id) ?? []),
+    ...bills.filter((b) => !known.has(b.id)),
+  ]
+  const sortByDate = () => setOrder([...bills].sort(byDate).map((b) => b.id))
   const { setNodeRef, isOver } = useDroppable({ id: block.id })
   const locked = useLocked()
   // Collapse the bill list — a per-device view preference, persisted in localStorage.
@@ -112,6 +132,11 @@ export default function PayBlock({ block, bills, blocks, star, onCycleStatus, on
                 )}
               </button>
               <div className="flex items-center gap-3 shrink-0">
+                {!collapsed && bills.length > 1 && (
+                  <button onClick={sortByDate} title="Sort bills by due date" className="text-[10px] font-semibold text-muted">
+                    ↕ Date
+                  </button>
+                )}
                 <span className={`text-[9px] tracking-[0.16em] uppercase font-bold ${block.type === 'adhoc' ? 'text-accent' : 'text-faint'}`}>
                   {block.type === 'adhoc' ? 'Ad-hoc' : 'Scheduled'}
                 </span>
@@ -197,7 +222,7 @@ export default function PayBlock({ block, bills, blocks, star, onCycleStatus, on
         {bills.length === 0 && !adding && (
           <div className="text-[13px] text-faint py-2">No bills in this block yet.</div>
         )}
-        {bills.map((bill) => (
+        {rows.map((bill) => (
           <BillRow
             key={bill.id}
             bill={bill}
