@@ -34,4 +34,5 @@ User has explicitly said security/authorization is a non-concern here (no real a
 
 - **DB changes:** add a file to `supabase/migrations/`, then apply it with the **Supabase MCP `apply_migration`** (project `kmyfecloewhnelwahiiz`); verify with `execute_sql`. The repo is not `supabase link`ed. **Never `supabase db push`**: the DB is shared with MentoMesh.
 - **Deploy:** push to `main`. Vercel's git integration auto-deploys production (`mentormesh/bill-tracker` → bills.jaeontech.com). Don't also run `vercel --prod`; that just builds a duplicate.
+- **Merging:** Claude may push changes straight to `main` without asking first (Jae's standing OK, 2026-10-16). Build and lint the changed files before pushing; a bad change is one `git revert` away.
 - **Scripts:** `npx tsx scripts/<name>.mts` (they load `.env.local`). `smoke-weekly` is pure (no writes). `backfill-weekly` is a one-time fill (dry run by default, `--apply` to insert). The other `smoke-*` scripts write temp rows to the live DB.
