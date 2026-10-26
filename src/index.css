@@ -34,7 +34,7 @@ body {
   margin: 0;
   font-family: var(--font-body);
   color: var(--color-ink);
-  background: #000;
+  background: var(--color-bg); /* #100f0c — soft near-black, matches the bottom nav */
   -webkit-font-smoothing: antialiased;
   font-feature-settings: "tnum" 1; /* tabular figures for money columns */
 }
