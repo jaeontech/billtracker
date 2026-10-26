@@ -45,6 +45,7 @@ export interface Template {
   due_day: number | null // 1–31 for monthly (drives the "home" block); null for weekly
   weekday: number | null // 0–6 (5 = Fri) → weekly, one bill per matching day; null → monthly
   active: boolean
+  note: string | null
   created_at: string
 }
 

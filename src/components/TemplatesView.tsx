@@ -79,13 +79,19 @@ function TemplateRow({ t, onUpdate, onDelete }: { t: Template; onUpdate: Props['
   const [name, setName] = useState(t.name)
   const [amount, setAmount] = useState(String(t.amount))
   const [day, setDay] = useState(String(t.due_day ?? ''))
+  const [note, setNote] = useState(t.note ?? '')
 
   const save = (patch: Partial<Template>) => onUpdate(t, patch)
 
   return (
     <div className={`flex items-center gap-2 py-2 border-b border-surface ${t.active ? '' : 'opacity-45'}`}>
-      <input value={name} onChange={(e) => setName(e.target.value)} onBlur={() => name !== t.name && save({ name })}
-        className="bg-transparent text-sm font-semibold outline-none flex-1 min-w-0" />
+      <div className="flex-1 min-w-0">
+        <input value={name} onChange={(e) => setName(e.target.value)} onBlur={() => name !== t.name && save({ name })}
+          className="bg-transparent text-sm font-semibold outline-none w-full" />
+        <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="+ note"
+          onBlur={() => note.trim() !== (t.note ?? '') && save({ note: note.trim() || null })}
+          className="bg-transparent text-[11px] text-muted placeholder:text-faint outline-none w-full" />
+      </div>
       <input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal"
         onBlur={() => Number(amount) !== t.amount && save({ amount: Number(amount) || 0 })}
         className="bg-transparent text-sm font-bold tabular-nums outline-none w-16 text-right" />
