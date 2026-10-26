@@ -36,17 +36,18 @@ for (const [pay, t, want] of cases) {
   console.log(ok ? 'PASS' : 'FAIL', pay, JSON.stringify(t), '→', got.join(', ') || '(none)', ok ? '' : `  want ${want.join(', ')}`)
 }
 
-// Star rule: 3 Fridays in the block AND 3 non-skipped Household bills in it.
+// [3P] rule: more than 2 non-skipped Household bills in the block.
 const hhBill = (na = false) => ({ template_id: 't', na }) as Bill
 const starCases: Array<[string, Bill[], boolean]> = [
   ['2026-10-31', [hhBill(), hhBill(), hhBill()], true],
   ['2026-10-31', [hhBill(), hhBill(), hhBill(true)], false], // one skipped (NA)
-  ['2026-09-15', [hhBill(), hhBill(), hhBill()], false], // only 2 Fridays (one moved in)
+  ['2026-09-15', [hhBill(), hhBill(), hhBill()], true], // 2 Fridays + one moved in
+  ['2026-09-15', [hhBill(), hhBill()], false],
 ]
 for (const [pay, bills, want] of starCases) {
-  const got = hasTripleWeekly(block(pay), bills, [tpl(fri)])
+  const got = hasTripleWeekly(bills, [tpl(fri)])
   if (got !== want) fail++
-  console.log(got === want ? 'PASS' : 'FAIL', 'star', pay, `${bills.filter((b) => !b.na).length} bills →`, got)
+  console.log(got === want ? 'PASS' : 'FAIL', '3P', pay, `${bills.filter((b) => !b.na).length} bills →`, got)
 }
 
 const name = billsForBlock(block('2026-09-15'), tpl(fri))[0]?.name

@@ -244,7 +244,7 @@ export default function App() {
             )}
             {showPast && pastBlocks.map((block) => (
               <PayBlock key={block.id} block={block} bills={billsByBlock[block.id] ?? []} blocks={moveTargets}
-                star={hasTripleWeekly(block, billsByBlock[block.id] ?? [], templates)}
+                star={hasTripleWeekly(billsByBlock[block.id] ?? [], templates)}
                 onCycleStatus={onCycleStatus} onMove={onMove} onSkip={onSkip} onDelete={onDelete} onEditAmount={onEditAmount} onEditName={onEditName} onEditDue={onEditDue} onToggleComplete={onToggleComplete} onHide={onHide} onAddBill={onAddBill} onEditIncome={onEditIncome} onEditNote={onEditNote} />
             ))}
 
@@ -265,7 +265,7 @@ export default function App() {
 
             {visibleBlocks.map((block) => (
               <PayBlock key={block.id} block={block} bills={billsByBlock[block.id] ?? []} blocks={moveTargets}
-                star={hasTripleWeekly(block, billsByBlock[block.id] ?? [], templates)}
+                star={hasTripleWeekly(billsByBlock[block.id] ?? [], templates)}
                 onCycleStatus={onCycleStatus} onMove={onMove} onSkip={onSkip} onDelete={onDelete} onEditAmount={onEditAmount} onEditName={onEditName} onEditDue={onEditDue} onToggleComplete={onToggleComplete} onHide={onHide} onAddBill={onAddBill} onEditIncome={onEditIncome} onEditNote={onEditNote} />
             ))}
 

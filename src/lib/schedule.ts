@@ -125,12 +125,11 @@ export function billsForBlock(blk: PayBlock, t: Template): Array<Partial<Bill>> 
   }))
 }
 
-// Star on the block title: a weekly template lands 3 times in this block (e.g. 3
-// Fridays) AND 3 of its bills are still here, not moved out or skipped (NA).
-export function hasTripleWeekly(blk: PayBlock, bills: Bill[], templates: Template[]): boolean {
+// "[3P]" on the block title: more than 2 of a weekly template's bills (e.g.
+// Household) are in this block, not skipped (NA). Counts moved-in bills too.
+export function hasTripleWeekly(bills: Bill[], templates: Template[]): boolean {
   return templates.some((t) => t.weekday !== null
-    && weekdaysForBlock(blk.pay_date, t.weekday).length === 3
-    && bills.filter((b) => b.template_id === t.id && !b.na).length === 3)
+    && bills.filter((b) => b.template_id === t.id && !b.na).length > 2)
 }
 
 /**
