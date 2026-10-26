@@ -34,7 +34,7 @@ body {
   margin: 0;
   font-family: var(--font-body);
   color: var(--color-ink);
-  background: radial-gradient(130% 90% at 50% -10%, #24221b 0%, #14130f 50%, #0a0907 100%);
+  background: #000;
   -webkit-font-smoothing: antialiased;
   font-feature-settings: "tnum" 1; /* tabular figures for money columns */
 }
